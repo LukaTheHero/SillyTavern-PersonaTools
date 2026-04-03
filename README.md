@@ -85,7 +85,7 @@ This project is licensed under the GNU General Public License v3.0 — see the [
 
 <img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/4eeb9b57-8f9f-4c0a-898a-58ea9d6446a4" />
 <img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/34a54b44-c054-4fe2-98da-be10779ed7f9" />
-<img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/1025c3ea-873a-486e-b039-397d1965af49" />
+<img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/b65150db-a7e2-4428-aace-2e6e8a2d3696" />
 <img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/584a7efb-01cb-4173-9775-05569a9554de" />
 <img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/1dc89de2-f29f-4a8e-aed4-3d1c4c39c0ed" />
 <img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/981d7b62-3897-44ae-b3b3-e3684ecbeaf6" />
