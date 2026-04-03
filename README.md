@@ -37,7 +37,7 @@ A combined SillyTavern extension for enhanced persona management. Merges the fun
 ### Method 1: SillyTavern Extension Installer
 1. Open SillyTavern
 2. Go to Extensions > Install Extension
-3. Paste this URL: `https://github.com/LukaTheHero/PersonaTools`
+3. Paste this URL: `https://github.com/LukaTheHero/SillyTavern-PersonaTools`
 4. Click Install
 
 ### Method 2: Manual Installation
