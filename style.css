@@ -1,0 +1,1072 @@
+
+Chatbox
+chat
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+M
+Delete everything in your style.css and paste this entire file:
+
+TEXT
+notepad++ "C:\000000SillyTavern-Launcher\SillyTavern\data\default-user\extensions\PersonaTools\style.css"
+Select All (Ctrl+A), delete, then paste:
+
+CSS
+/* ============================================
+   PersonaTools v1.2.0 - Complete Styles
+   ============================================ */
+
+/* ============================================
+   SECTION 1: QuickPersona Button
+   ============================================ */
+
+#quickPersona {
+    position: relative !important;
+    width: var(--bottomFormBlockSize) !important;
+    height: var(--bottomFormBlockSize) !important;
+    order: 10 !important;
+}
+
+
+#quickPersonaImg {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center center !important;
+    cursor: pointer !important;
+    display: block !important;
+    border: 1px solid transparent !important;
+    box-shadow: 0 0 5px var(--black50a) !important;
+    outline: 2px solid transparent !important;
+    border-radius: 50% !important;
+    clip-path: circle(50%) !important;
+}
+
+
+
+
+
+
+#quickPersonaCaret {
+    display: flex;
+    justify-content: flex-end;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: calc(var(--bottomFormBlockSize) / 3);
+    height: calc(var(--bottomFormBlockSize) / 3);
+    z-index: 10;
+    font-size: calc(var(--bottomFormBlockSize) / 3);
+    text-shadow: 0 0 5px var(--black50a);
+}
+
+
+
+/* ============================================
+   SECTION 2: Quick Persona Menu (Vertical List)
+   ============================================ */
+
+.pt-persona-menu {
+    z-index: 30000;
+    background: var(--SmartThemeBlurTintColor, rgba(20, 20, 20, 0.95));
+    backdrop-filter: blur(var(--SmartThemeBlurStrength, 10px));
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255,255,255,0.1));
+    border-radius: 12px;
+    width: 240px;
+    max-height: 280px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+
+.pt-menu-header {
+    text-align: center;
+    padding: 6px 12px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--SmartThemeBodyColor, #fff);
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(255,255,255,0.1));
+}
+
+
+.pt-menu-list {
+    overflow-y: auto;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.pt-menu-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.pt-menu-list::-webkit-scrollbar-thumb {
+    background: var(--SmartThemeBorderColor, #444);
+    border-radius: 3px;
+}
+
+.pt-menu-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+
+.pt-menu-row:hover {
+    background: var(--SmartThemeBlurTintColor, rgba(255,255,255,0.08));
+}
+
+.pt-menu-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50% !important;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255,255,255,0.15));
+}
+
+
+body.square-avatars .pt-menu-avatar {
+    border-radius: 50% !important;
+}
+
+
+.pt-menu-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.pt-menu-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--SmartThemeBodyColor, #fff);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pt-menu-subtitle {
+    font-size: 11px;
+    color: var(--SmartThemeQuoteColor, rgba(255,255,255,0.5));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pt-menu-check {
+    color: #8ab4ff;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+
+.pt-selected {
+    background: var(--SmartThemeBlurTintColor, rgba(255,255,255,0.05));
+}
+
+.pt-selected .pt-menu-name {
+    color: #8ab4ff;
+}
+
+
+.pt-menu-separator {
+    height: 1px;
+    background: var(--SmartThemeBorderColor, rgba(255,255,255,0.1));
+    margin: 4px 8px;
+}
+
+.pt-menu-folder .pt-menu-name {
+    color: var(--SmartThemeQuoteColor, rgba(255,255,255,0.8));
+}
+
+.pt-menu-folder:hover .pt-menu-name {
+    color: var(--SmartThemeBodyColor, #fff);
+}
+
+.pt-menu-back {
+    opacity: 0.7;
+}
+
+.pt-menu-back:hover {
+    opacity: 1;
+}
+
+.pt-menu-back-icon {
+    width: 32px;
+    height: 32px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: var(--SmartThemeBodyColor, #fff);
+    flex-shrink: 0;
+}
+
+.pt-menu-folder-title {
+    padding: 4px 10px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--SmartThemeBodyColor, #8ab4ff);
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(255,255,255,0.1));
+    margin-bottom: 2px;
+    text-shadow: 0 0 10px rgba(138,180,255,0.3);
+}
+
+/* ============================================
+   SECTION 3: Styled Tooltip
+   ============================================ */
+
+.pt-tooltip {
+    position: fixed;
+    z-index: 99999;
+    background: var(--SmartThemeBlurTintColor, rgba(20, 20, 20, 0.95));
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255,255,255,0.15));
+    border-radius: 8px;
+    padding: 8px 12px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    max-width: 250px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+.pt-tooltip.visible {
+    opacity: 1;
+}
+
+.pt-tooltip-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--SmartThemeBodyColor, #fff);
+    line-height: 1.3;
+}
+
+.pt-tooltip-title {
+    font-size: 11px;
+    color: var(--SmartThemeQuoteColor, rgba(255,255,255,0.6));
+    line-height: 1.3;
+    margin-top: 2px;
+}
+
+/* ============================================
+   SECTION 4: Folder Cards in Panel
+   ============================================ */
+
+.pgm-folder-card .character_name_block .ch_name {
+    font-size: 1.1em !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 12px var(--SmartThemeHighlightColor, rgba(138,180,255,0.4)),
+                 0 0 4px rgba(255,255,255,0.1) !important;
+}
+
+.pgm-folder-card .character_description,
+.pgm-folder-card .persona_description,
+.pgm-folder-card .mes_block,
+.pgm-folder-card .character_version,
+.pgm-folder-card .persona_title,
+.pgm-folder-card .ch_description,
+.pgm-folder-card .description,
+.pgm-folder-card [class*="description"],
+.pgm-folder-card .avatar-description,
+.pgm-folder-card .character_name_block ~ *:not(.pgm-folder-info-row) {
+    display: none !important;
+}
+
+.pgm-folder-card .character_name_block {
+    display: block !important;
+    visibility: visible !important;
+}
+
+.pgm-folder-card .character_name_block .ch_name {
+    display: block !important;
+    visibility: visible !important;
+}
+
+.pgm-folder-card .pgm-folder-info-row {
+    display: flex !important;
+    visibility: visible !important;
+}
+
+
+.pgm-folder-desc {
+    font-size: 0.85em;
+    color: var(--SmartThemeBodyColor, #ccc);
+    margin-top: 2px;
+    font-style: normal;
+    opacity: 0.7;
+}
+
+.pgm-folder-card {
+    cursor: pointer !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transition: box-shadow 0.2s ease;
+    z-index: 1;
+    padding: 8px 12px !important;
+    min-height: 0 !important;
+    max-height: none !important;
+}
+
+.pgm-folder-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Make folder card avatar smaller */
+.pgm-folder-card img.avatar {
+    width: 45px !important;
+    height: 45px !important;
+    min-width: 45px !important;
+    min-height: 45px !important;
+    max-width: 45px !important;
+    max-height: 45px !important;
+    border-radius: 50% !important;
+}
+
+.pgm-folder-card .avatar-container,
+.pgm-folder-card .avatar {
+    width: 45px !important;
+    height: 45px !important;
+    min-width: 45px !important;
+    min-height: 45px !important;
+}
+
+.pgm-folder-card * {
+    pointer-events: none !important;
+}
+
+.pgm-folder-card .pgm-folder-manage {
+    pointer-events: auto !important;
+}
+
+.pgm-folder-card .pgm-folder-manage * {
+    pointer-events: none !important;
+}
+
+.pgm-folder-card img {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.pgm-folder-card .persona-tag-labels {
+    display: none !important;
+}
+
+/* ============================================
+   SECTION 5: Folder Header (Back + Title)
+   ============================================ */
+
+.pgm-folder-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--SmartThemeBodyBG, #1a1a1a);
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: opacity 0.3s ease;
+}
+
+.pgm-folder-header.pgm-hidden {
+    display: none;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.pgm-back-button {
+    padding: 8px 12px;
+    background: var(--SmartThemeHighlightColor, #4a9eff);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pgm-back-button:hover {
+    transform: translateX(-2px);
+}
+
+.pgm-folder-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--SmartThemeBodyColor, #fff);
+    flex: 1;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 12px var(--SmartThemeHighlightColor, rgba(138,180,255,0.4)),
+                 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.pgm-hidden {
+    display: none !important;
+}
+
+/* ============================================
+   SECTION 6: Persona Card Buttons
+   ============================================ */
+
+.pgm-group-btn {
+    margin-left: 6px !important;
+    padding: 2px 6px !important;
+    font-size: 12px !important;
+    border-radius: 4px !important;
+    position: relative !important;
+    z-index: 10 !important;
+    background: var(--SmartThemeBlurTintColor, rgba(255,255,255,0.1)) !important;
+    color: var(--SmartThemeBodyColor, #fff) !important;
+    border: none !important;
+    transition: background-color 0.2s ease !important;
+}
+
+.pgm-group-btn:hover {
+    background: var(--SmartThemeHighlightColor, #4a9eff) !important;
+    color: white !important;
+}
+
+.pgm-tag-btn {
+    margin-left: 6px !important;
+    padding: 2px 6px !important;
+    font-size: 12px !important;
+    border-radius: 4px !important;
+    position: relative !important;
+    z-index: 10 !important;
+    background: var(--SmartThemeBlurTintColor, rgba(255,255,255,0.1)) !important;
+    color: var(--SmartThemeBodyColor, #fff) !important;
+    border: none !important;
+    transition: background-color 0.2s ease !important;
+}
+
+.pgm-tag-btn:hover {
+    background: var(--SmartThemeHighlightColor, #4a9eff) !important;
+    color: white !important;
+}
+
+.pgm-folder-manage {
+    margin-left: 6px !important;
+    padding: 2px 6px !important;
+    font-size: 12px !important;
+    border-radius: 4px !important;
+    position: relative !important;
+    z-index: 15 !important;
+    background: var(--SmartThemeBlurTintColor, rgba(255,255,255,0.1)) !important;
+    color: var(--SmartThemeBodyColor, #fff) !important;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255,255,255,0.2)) !important;
+    transition: background-color 0.2s ease !important;
+    pointer-events: auto !important;
+    display: inline-block !important;
+}
+
+.pgm-folder-manage:hover {
+    background: var(--SmartThemeHighlightColor, #4a9eff) !important;
+    color: white !important;
+}
+
+
+/* ============================================
+   SECTION 7: Popovers
+   ============================================ */
+
+.pgm-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 999999;
+    backdrop-filter: blur(2px);
+}
+
+.pgm-popover {
+    position: fixed;
+    z-index: 1000000;
+    width: 360px;
+    max-height: 80vh;
+    background: var(--SmartThemeBodyBG, #1a1a1a);
+    color: var(--SmartThemeBodyColor, #fff);
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    overflow-y: auto;
+    animation: pgm-popover-appear 0.2s ease-out;
+}
+
+.pgm-popover * {
+    box-sizing: border-box;
+}
+
+.pgm-popover-title {
+    font-weight: 600;
+    font-size: 16px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+    margin-bottom: 4px;
+}
+
+.pgm-popover-subtitle {
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--SmartThemeBodyColor, #ccc);
+    margin-top: 4px;
+    margin-bottom: 4px;
+    opacity: 0.8;
+}
+
+
+.pgm-groups-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 200px;
+}
+
+.pgm-groups-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.pgm-groups-list::-webkit-scrollbar-thumb {
+    background: var(--SmartThemeBorderColor, #444);
+    border-radius: 3px;
+}
+
+.pgm-group-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.pgm-group-row:hover {
+    background: var(--SmartThemeBlurTintColor, rgba(255,255,255,0.05));
+    border-radius: 4px;
+}
+
+.pgm-group-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--SmartThemeHighlightColor, #4a9eff);
+    cursor: pointer;
+}
+
+.pgm-group-name {
+    flex: 1;
+    color: var(--SmartThemeBodyColor, #fff);
+    font-weight: 500;
+}
+
+.pgm-group-count {
+    font-size: 12px;
+    color: var(--SmartThemeQuoteColor, #999);
+}
+
+.pgm-empty {
+    text-align: center;
+    color: var(--SmartThemeQuoteColor, #999);
+    padding: 10px 0;
+    font-style: italic;
+}
+
+.pgm-add-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid var(--SmartThemeBorderColor, #444);
+}
+
+.pgm-add-section .pgm-add-input {
+    flex: 1;
+    min-width: 100px;
+}
+
+.pgm-add-input {
+    padding: 6px 8px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 4px;
+    background: var(--SmartThemeBlurTintColor, rgba(255,255,255,0.05));
+    color: var(--SmartThemeBodyColor, #fff);
+    font-size: 13px;
+}
+
+.pgm-add-input:focus {
+    outline: none;
+    border-color: var(--SmartThemeHighlightColor, #4a9eff);
+}
+
+.pgm-add-input::placeholder {
+    color: var(--SmartThemeBodyColor, #ccc);
+    opacity: 0.5;
+}
+
+
+.pgm-add-btn {
+    white-space: nowrap;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+.pgm-add-color {
+    width: 36px;
+    height: 30px;
+    padding: 1px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.pgm-close-btn {
+    align-self: flex-end;
+    padding: 6px 16px;
+}
+
+.pgm-button-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid var(--SmartThemeBorderColor, #444);
+}
+
+.pgm-delete-folder-btn {
+    background: #dc3545 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 4px !important;
+    margin-right: auto !important;
+}
+
+.pgm-delete-folder-btn:hover {
+    background: #c82333 !important;
+}
+
+.pgm-remove-persona-btn {
+    padding: 2px 8px !important;
+    font-size: 12px !important;
+    background: #dc3545 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 4px !important;
+}
+
+.pgm-remove-persona-btn:hover {
+    background: #c82333 !important;
+}
+
+.pgm-persona-row {
+    justify-content: space-between;
+    padding: 6px 4px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+}
+
+.pgm-persona-row:hover {
+    border-color: var(--SmartThemeBorderColor, #444);
+    background: var(--SmartThemeBlurTintColor, rgba(255,255,255,0.03));
+}
+
+.pgm-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.pgm-tag-add-section {
+    flex-wrap: wrap;
+}
+
+@keyframes pgm-popover-appear {
+    from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ============================================
+   SECTION 8: Tag Filter Bar
+   ============================================ */
+
+#persona-tag-filter-bar {
+    padding: 5px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+#tag-filter-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+    flex-wrap: wrap;
+}
+
+#toggle-tag-filter {
+    padding: 4px 10px;
+    font-size: 0.85em;
+    cursor: pointer;
+}
+
+.pt-tag-filter-input {
+    padding: 6px 10px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 6px;
+    background: var(--SmartThemeBlurTintColor, rgba(255,255,255,0.05));
+    color: var(--SmartThemeBodyColor, #fff);
+    font-size: 13px;
+    width: 160px;
+    outline: none;
+}
+
+.pt-tag-filter-input:focus {
+    border-color: var(--SmartThemeHighlightColor, #4a9eff);
+}
+
+.pt-tag-filter-input::placeholder {
+    color: var(--SmartThemeBodyColor, #ccc);
+    opacity: 0.5;
+}
+
+
+#tag-filter-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.pgm-clear-filters-btn {
+    background: #dc3545 !important;
+    color: white !important;
+    border: none !important;
+    padding: 4px 10px !important;
+    font-size: 0.85em !important;
+    border-radius: 4px !important;
+}
+
+.pgm-clear-filters-btn:hover {
+    background: #c82333 !important;
+}
+
+/* ============================================
+   SECTION 9: Tag Buttons & Labels
+   ============================================ */
+
+.persona-tag-btn {
+    display: inline-block;
+    margin: 0 4px 4px 0;
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-size: 0.8em;
+    cursor: pointer;
+    color: #fff !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.7) !important;
+    font-weight: 600 !important;
+    border: 1px solid rgba(255,255,255,0.25) !important;
+    transition: all 0.15s ease;
+    /* background-color is set inline by JS from tag.color — this ensures it always shows */
+}
+
+
+.persona-tag-btn.selected {
+    outline: 2px solid #fff !important;
+    outline-offset: 1px !important;
+    box-shadow: 0 0 8px rgba(255,255,255,0.3) !important;
+}
+
+.persona-tag-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 3px;
+}
+
+.persona-tag-label {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.75em;
+    border: 1px solid rgba(255,255,255,0.3);
+    cursor: pointer;
+    color: #fff !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6) !important;
+    font-weight: 500 !important;
+}
+
+.global-tag-btn {
+    color: #fff !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6) !important;
+    font-weight: 500 !important;
+    padding: 3px 8px !important;
+    border-radius: 4px !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    font-size: 12px !important;
+}
+
+.global-tag-btn.active {
+    outline: 2px solid #fff !important;
+}
+
+/* ============================================
+   SECTION 10: Responsive
+   ============================================ */
+
+@media (max-width: 768px) {
+    .pt-persona-menu {
+        width: calc(100vw - 20px);
+        max-width: 350px;
+    }
+
+    .pgm-popover {
+        width: calc(100vw - 20px) !important;
+        max-width: 360px !important;
+    }
+
+    .pgm-folder-header {
+        padding: 8px 12px;
+    }
+
+    .pgm-folder-title {
+        font-size: 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pgm-popover,
+    .pt-tooltip,
+    .pgm-folder-card,
+    .pt-persona-menu {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+
+/* Folder card name row */
+.pgm-folder-name-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    visibility: visible !important;
+}
+
+.pgm-folder-card .character_name_block {
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+
+
+.pgm-folder-card-name {
+    font-size: 1em !important;
+    font-weight: 700 !important;
+    color: var(--SmartThemeBodyColor, #fff) !important;
+    text-shadow: 0 0 10px rgba(138,180,255,0.3),
+                 0 0 3px rgba(255,255,255,0.1) !important;
+    display: inline-block !important;
+    visibility: visible !important;
+}
+
+
+.pgm-folder-card .pgm-folder-name-row {
+    display: flex !important;
+    visibility: visible !important;
+}
+
+.pgm-folder-card .pgm-folder-desc {
+    display: block !important;
+    visibility: visible !important;
+    font-size: 0.8em;
+    color: var(--SmartThemeBodyColor, #ccc);
+    opacity: 0.6;
+    font-style: normal;
+    margin-top: 1px;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
+
+
+
+.pgm-folder-card .character_name_block {
+    display: block !important;
+    visibility: visible !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+}
+
+
+
+
+/* Hide original persona name and all other text on folder cards */
+.pgm-folder-card .ch_name,
+.pgm-folder-card [class*="ch_name"],
+.pgm-folder-card .flex1,
+.pgm-folder-card .ch_additional_info,
+.pgm-folder-card .label,
+.pgm-folder-card [class*="label"],
+.pgm-folder-card .character_name_flex_block > *:not(.pgm-folder-name-row):not(.pgm-folder-desc) {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Override for elements that share ch_name class but are NOT in folder cards */
+.pgm-folder-card .pgm-folder-card-name,
+.pgm-folder-card .pgm-folder-name-row,
+.pgm-folder-card .pgm-folder-desc,
+.pgm-folder-card .pgm-folder-manage {
+    display: revert !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: revert !important;
+    padding: revert !important;
+}
+
+.pgm-folder-card .pgm-folder-card-name {
+    display: inline-block !important;
+}
+
+.pgm-folder-card .pgm-folder-name-row {
+    display: flex !important;
+}
+
+.pgm-folder-card .pgm-folder-desc {
+    display: block !important;
+}
+
+.pgm-folder-card .pgm-folder-manage {
+    display: inline-block !important;
+}
+
+
+/* But show our custom folder elements */
+.pgm-folder-card .pgm-folder-card-name {
+    display: inline-block !important;
+    visibility: visible !important;
+}
+
+.pgm-folder-card .pgm-folder-name-row {
+    display: flex !important;
+    visibility: visible !important;
+}
+
+.pgm-folder-card .pgm-folder-desc {
+    display: block !important;
+    visibility: visible !important;
+}
+
+.pgm-folder-card .pgm-folder-manage {
+    display: inline-block !important;
+    visibility: visible !important;
+}
+

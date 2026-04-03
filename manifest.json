@@ -1,0 +1,11 @@
+{
+  "display_name": "PersonaTools",
+  "loading_order": 101,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "css": "style.css",
+  "author": "LukaTheHero",
+  "version": "1.0.0",
+  "homePage": "https://github.com/LukaTheHero/PersonaTools"
+}
