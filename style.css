@@ -410,6 +410,13 @@ body.square-avatars .pt-menu-avatar {
     display: none !important;
 }
 
+/* Suppress the SillyTavern empty()+append() re-render flash. Held only until the
+   mutation observer re-applies the folder view (usually <1 frame), with a 600 ms
+   safety release in case no mutation fires. */
+#user_avatar_block.pgm-transitioning {
+    visibility: hidden !important;
+}
+
 /* ============================================
    SECTION 6: Persona Card Buttons
    ============================================ */

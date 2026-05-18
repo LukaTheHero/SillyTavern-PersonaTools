@@ -10,7 +10,7 @@
     'use strict';
 
     const EXT_NAME = 'PersonaTools';
-    const VERSION = '1.2.1';
+    const VERSION = '1.3.0';
     const DEBUG = false;
 
     const STContext = SillyTavern.getContext();
@@ -376,7 +376,9 @@
     let currentFolderView = null;
     let lastCardsCount = 0;
     let lastCardsHash = '';
-    let checkInterval = null;
+    let cardsObserver = null;
+    let observerRafHandle = null;
+    let transitioningReleaseTimer = null;
 
     function isPersonaManagerVisible() {
         const m = document.querySelector(SELECTORS.personaManagement);
@@ -419,22 +421,62 @@
         else if (!vis && isPanelUICreated) { stopCardsMonitoring(); isPanelUICreated = false; }
     }
 
-    function startCardsMonitoring() {
-        if (checkInterval) return;
-        checkInterval = setInterval(() => {
-            if (!isPersonaManagerVisible()) return;
+    // React to SillyTavern's empty()+append() re-render on the same frame instead of polling
+    // every 1s. The mutation observer fires for every child mutation in #user_avatar_block, so
+    // we coalesce them with rAF and short-circuit when only our own folder-card insertions
+    // changed the DOM (the hash filters folder-* ids out).
+    function handleCardsMutation() {
+        if (observerRafHandle) return;
+        observerRafHandle = requestAnimationFrame(() => {
+            observerRafHandle = null;
+            if (!isPersonaManagerVisible()) {
+                clearTransitioning();
+                return;
+            }
             const cards = getAvatarCards();
             const count = cards.length;
             const hash = cards.map(c => c.dataset.avatarId || '').filter(id => id && !id.startsWith('folder-')).sort().join('|');
             if (count !== lastCardsCount || hash !== lastCardsHash) {
-                lastCardsCount = count; lastCardsHash = hash;
-                storeOriginalCards(); resetProcessedFlags(); updatePanelView();
+                lastCardsCount = count;
+                lastCardsHash = hash;
+                refreshOriginalCards();
+                resetProcessedFlags();
+                updatePanelView();
+                renderPersonaTagCards();
             }
-        }, 1000);
+            clearTransitioning();
+        });
+    }
+
+    function startCardsMonitoring() {
+        if (cardsObserver) return;
+        const block = document.querySelector(SELECTORS.avatarBlock);
+        if (!block) return;
+        cardsObserver = new MutationObserver(handleCardsMutation);
+        cardsObserver.observe(block, { childList: true });
     }
 
     function stopCardsMonitoring() {
-        if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
+        if (cardsObserver) { cardsObserver.disconnect(); cardsObserver = null; }
+        if (observerRafHandle) { cancelAnimationFrame(observerRafHandle); observerRafHandle = null; }
+        clearTransitioning();
+    }
+
+    // Hide the block during SillyTavern's re-render so the user doesn't see the brief
+    // pristine-cards-then-folder-view flash. Cleared by handleCardsMutation once we've
+    // re-applied the folder view, with a safety timeout in case no mutation arrives.
+    function markTransitioning() {
+        const block = document.querySelector(SELECTORS.avatarBlock);
+        if (block) block.classList.add('pgm-transitioning');
+        clearTimeout(transitioningReleaseTimer);
+        transitioningReleaseTimer = setTimeout(clearTransitioning, 600);
+    }
+
+    function clearTransitioning() {
+        const block = document.querySelector(SELECTORS.avatarBlock);
+        if (block) block.classList.remove('pgm-transitioning');
+        clearTimeout(transitioningReleaseTimer);
+        transitioningReleaseTimer = null;
     }
 
     function storeOriginalCards() {
@@ -1167,31 +1209,25 @@
     const PersonaTools = { _personasModule: null };
 
     // Handle SillyTavern persona mutations (rename/update/create/delete).
-    // SillyTavern re-renders the persona block via getUserAvatars() and may jump pagination via
-    // navigateToAvatar(). Our 1s poll keys on avatar IDs, so a rename (id unchanged) is invisible
-    // to it and leaves the folder view out of sync. We re-cache the cards and re-apply the view.
+    // SillyTavern re-renders #user_avatar_block via getUserAvatars() and may jump pagination via
+    // navigateToAvatar(). The mutation observer will pick that up on the same frame and re-apply
+    // the folder view; we just need to mask the brief pristine-cards flash and force the next
+    // observer tick to do real work (rename doesn't change the avatar-id hash).
     function handlePersonaMutation(payload) {
         updateQuickPersonaButton();
         if (!isPersonaManagerVisible()) return;
 
-        const deletedId = (payload && typeof payload === 'object') ? payload.avatarId : null;
-        if (deletedId) {
-            // Safe to drop the cached element; if the persona still exists (rename/update) it will
-            // be re-cached from the DOM below.
-            originalPersonaCards.delete(deletedId);
+        const changedId = (payload && typeof payload === 'object') ? payload.avatarId : null;
+        if (changedId) {
+            // Drop the cached element; if the persona still exists (rename/update) the observer
+            // will re-cache it from the new DOM via refreshOriginalCards().
+            originalPersonaCards.delete(changedId);
         }
-
-        // Wait a tick for SillyTavern's getUserAvatars re-render + navigateToAvatar to settle.
-        setTimeout(() => {
-            if (!isPersonaManagerVisible()) return;
-            refreshOriginalCards();
-            resetProcessedFlags();
-            // Reset the polling hash so the next interval tick doesn't immediately undo our work.
-            lastCardsHash = '';
-            updatePanelView();
-            renderTagFilterBar();
-            renderPersonaTagCards();
-        }, 150);
+        // Force the next observer tick to treat this as a real change even if the avatar-id set
+        // is identical (pure rename case).
+        lastCardsHash = '';
+        markTransitioning();
+        renderTagFilterBar();
     }
 
     async function init() {
