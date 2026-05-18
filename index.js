@@ -10,7 +10,7 @@
     'use strict';
 
     const EXT_NAME = 'PersonaTools';
-    const VERSION = '1.2.0';
+    const VERSION = '1.2.1';
     const DEBUG = false;
 
     const STContext = SillyTavern.getContext();
@@ -442,6 +442,20 @@
         cards.forEach(card => {
             const id = card.dataset.avatarId;
             if (id && !card.classList.contains(CLASSES.folderCard) && !originalPersonaCards.has(id)) {
+                originalPersonaCards.set(id, { element: card.cloneNode(true) });
+            }
+        });
+    }
+
+    // Re-clone cards currently in the DOM, overwriting any stale entries (e.g. after a rename
+    // where the avatar id is unchanged but the displayed name was updated by SillyTavern).
+    // Must run BEFORE updatePersonaCards/renderPersonaTagCards add buttons/labels to the cards,
+    // otherwise the modified versions get cached.
+    function refreshOriginalCards() {
+        const cards = getAvatarCards();
+        cards.forEach(card => {
+            const id = card.dataset.avatarId;
+            if (id && !card.classList.contains(CLASSES.folderCard) && !card.classList.contains(CLASSES.processed)) {
                 originalPersonaCards.set(id, { element: card.cloneNode(true) });
             }
         });
@@ -1152,6 +1166,34 @@
 
     const PersonaTools = { _personasModule: null };
 
+    // Handle SillyTavern persona mutations (rename/update/create/delete).
+    // SillyTavern re-renders the persona block via getUserAvatars() and may jump pagination via
+    // navigateToAvatar(). Our 1s poll keys on avatar IDs, so a rename (id unchanged) is invisible
+    // to it and leaves the folder view out of sync. We re-cache the cards and re-apply the view.
+    function handlePersonaMutation(payload) {
+        updateQuickPersonaButton();
+        if (!isPersonaManagerVisible()) return;
+
+        const deletedId = (payload && typeof payload === 'object') ? payload.avatarId : null;
+        if (deletedId) {
+            // Safe to drop the cached element; if the persona still exists (rename/update) it will
+            // be re-cached from the DOM below.
+            originalPersonaCards.delete(deletedId);
+        }
+
+        // Wait a tick for SillyTavern's getUserAvatars re-render + navigateToAvatar to settle.
+        setTimeout(() => {
+            if (!isPersonaManagerVisible()) return;
+            refreshOriginalCards();
+            resetProcessedFlags();
+            // Reset the polling hash so the next interval tick doesn't immediately undo our work.
+            lastCardsHash = '';
+            updatePanelView();
+            renderTagFilterBar();
+            renderPersonaTagCards();
+        }, 150);
+    }
+
     async function init() {
         log('Initializing PersonaTools v' + VERSION);
         settings = getSettings();
@@ -1161,6 +1203,11 @@
 
         eventSource.on(event_types.CHAT_CHANGED, updateQuickPersonaButton);
         eventSource.on(event_types.SETTINGS_UPDATED, () => { updateQuickPersonaButton(); setTimeout(tryCreatePanelUI, 100); });
+
+        if (event_types.PERSONA_RENAMED) eventSource.on(event_types.PERSONA_RENAMED, handlePersonaMutation);
+        if (event_types.PERSONA_UPDATED) eventSource.on(event_types.PERSONA_UPDATED, handlePersonaMutation);
+        if (event_types.PERSONA_CREATED) eventSource.on(event_types.PERSONA_CREATED, handlePersonaMutation);
+        if (event_types.PERSONA_DELETED) eventSource.on(event_types.PERSONA_DELETED, handlePersonaMutation);
 
         $(document.body).on('click', (e) => {
             if (isQuickMenuOpen && !e.target.closest('#quickPersonaMenu') && !e.target.closest('#quickPersona')) closeQuickPersonaSelector();
