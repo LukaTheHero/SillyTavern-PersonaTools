@@ -83,7 +83,7 @@ This project is licensed under the GNU General Public License v3.0 — see the [
 
 ## Screenshots
 
-Screenshots below are from v1.x — v2.0.0 keeps the same features with a refreshed look.
+Screenshots below V2.0.0
 
 <img width="1914" height="1155" alt="image" src="https://github.com/user-attachments/assets/f810154b-80c9-45a3-b8c5-dc660e607183" />
 <img width="880" height="872" alt="image" src="https://github.com/user-attachments/assets/e955e42d-dfe4-4a17-b21c-7416cb1c03fe" />
