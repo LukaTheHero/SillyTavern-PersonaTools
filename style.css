@@ -327,17 +327,29 @@
     flex-shrink: 0;
 }
 
-.pt-quick-folder-icon {
+.pt-quick-folder-preview {
+    position: relative;
     width: 34px;
     height: 34px;
-    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.pt-quick-folder-badge {
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--pt-accent-soft);
-    color: var(--pt-accent);
-    font-size: 14px;
-    flex-shrink: 0;
+    background: var(--pt-accent);
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    font-size: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
 }
 
 .pt-quick-folder.pt-expanded .pt-chevron {

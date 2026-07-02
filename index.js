@@ -16,7 +16,7 @@
     'use strict';
 
     const EXT_NAME = 'PersonaTools';
-    const VERSION = '2.0.1';
+    const VERSION = '2.0.2';
     // PersonaTools' entry in personasFilter.filterFunctions. Namespaced to never
     // collide with ST's own FILTER_TYPES keys.
     const FILTER_KEY = 'personaTools__view';
@@ -1233,7 +1233,10 @@
                     },
                 },
             },
-                el('div', { cls: 'pt-quick-folder-icon' }, icon('fa-folder')),
+                el('div', { cls: 'pt-quick-folder-preview' },
+                    el('img', { cls: 'pt-quick-avatar', attrs: { src: thumbUrl(folder.members[0]), alt: '', loading: 'lazy' } }),
+                    el('div', { cls: 'pt-quick-folder-badge' }, icon('fa-folder')),
+                ),
                 el('div', { cls: 'pt-quick-info' },
                     el('div', { cls: 'pt-quick-name', text: folder.name }),
                     settings.folderDescriptions[folder.name] ? el('div', { cls: 'pt-quick-sub', text: settings.folderDescriptions[folder.name] }) : null,
