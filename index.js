@@ -16,7 +16,7 @@
     'use strict';
 
     const EXT_NAME = 'PersonaTools';
-    const VERSION = '2.0.0';
+    const VERSION = '2.0.1';
     // PersonaTools' entry in personasFilter.filterFunctions. Namespaced to never
     // collide with ST's own FILTER_TYPES keys.
     const FILTER_KEY = 'personaTools__view';
@@ -460,6 +460,14 @@
         decorateNativeCards(block);
         updateFolderHeader();
         renderTagBar();
+        // With every persona foldered, the root list has zero native entries and
+        // ST's pagination navigator renders a confusing "1-0 .. 0" — hide it.
+        const panel = document.querySelector(SEL.panel);
+        if (panel) {
+            const hasNative = !!block.querySelector(`${SEL.card}:not(.pt-folder-card)`);
+            const hasFolders = !!block.querySelector('.pt-folder-card');
+            panel.classList.toggle('pt-root-empty', hasFolders && !hasNative);
+        }
         if (pendingAvatarRefresh) {
             pendingAvatarRefresh = false;
             updateQuickButton(true);
@@ -638,6 +646,7 @@
     // ============================================
 
     let tagBar = null;
+    let tagToggleBtn = null;
     let tagBarExpanded = false;
     let tagSearchValue = '';
 
@@ -653,37 +662,37 @@
     function createTagBar() {
         const headerRow = document.querySelector(SEL.headerRow);
         if (!headerRow || tagBar) return;
+        // The toggle lives inside ST's own header row (next to the search bar)
+        // so the panel doesn't grow an extra control row; the chips expand below.
+        tagToggleBtn = el('button', {
+            cls: 'pt-tag-bar-toggle menu_button', title: 'Filter by tags',
+            attrs: { type: 'button' },
+            on: { click: () => { tagBarExpanded = !tagBarExpanded; renderTagBar(); } },
+        });
+        const searchBar = headerRow.querySelector('#persona_search_bar');
+        if (searchBar) searchBar.insertAdjacentElement('afterend', tagToggleBtn);
+        else headerRow.append(tagToggleBtn);
         tagBar = el('div', { cls: 'pt-tag-bar' });
         headerRow.insertAdjacentElement('afterend', tagBar);
         renderTagBar();
     }
 
     function renderTagBar() {
-        if (!tagBar) return;
-        tagBar.replaceChildren();
+        if (!tagBar || !tagToggleBtn) return;
 
         const hasTags = settings.persona_tags.length > 0;
-        if (!hasTags && !view.tags.length) { tagBar.classList.add('pt-hidden'); return; }
+        const activeCount = view.tags.length;
+
+        tagToggleBtn.classList.toggle('pt-hidden', !hasTags && !activeCount);
+        tagToggleBtn.classList.toggle('pt-open', tagBarExpanded);
+        const toggleKids = [icon('fa-tags'), el('span', { cls: 'pt-tag-toggle-label', text: 'Tags' })];
+        if (activeCount) toggleKids.push(el('span', { cls: 'pt-tag-toggle-badge', text: String(activeCount) }));
+        toggleKids.push(icon(`fa-chevron-${tagBarExpanded ? 'up' : 'down'} pt-chevron`));
+        tagToggleBtn.replaceChildren(...toggleKids);
+
+        tagBar.replaceChildren();
+        if (!tagBarExpanded || (!hasTags && !activeCount)) { tagBar.classList.add('pt-hidden'); return; }
         tagBar.classList.remove('pt-hidden');
-
-        const toggleBtn = el('button', {
-            cls: `pt-tag-bar-toggle menu_button${tagBarExpanded ? ' pt-open' : ''}`,
-            attrs: { type: 'button' },
-            on: { click: () => { tagBarExpanded = !tagBarExpanded; renderTagBar(); } },
-        }, icon('fa-tags'), el('span', { text: 'Tags' }), icon(`fa-chevron-${tagBarExpanded ? 'up' : 'down'} pt-chevron`));
-
-        const header = el('div', { cls: 'pt-tag-bar-header' }, toggleBtn);
-
-        if (view.tags.length) {
-            header.append(el('span', { cls: 'pt-tag-bar-active', text: `${view.tags.length} filter${view.tags.length > 1 ? 's' : ''} active` }));
-            header.append(el('button', {
-                cls: 'pt-clear-btn menu_button', attrs: { type: 'button' },
-                on: { click: () => { changeView(() => { view.tags = []; }); renderTagBar(); } },
-            }, icon('fa-xmark'), el('span', { text: 'Clear' })));
-        }
-
-        tagBar.append(header);
-        if (!tagBarExpanded) return;
 
         const chips = el('div', { cls: 'pt-tag-bar-chips' });
         const renderChips = () => {
@@ -703,14 +712,22 @@
             if (!chips.children.length) chips.append(el('div', { cls: 'pt-empty', text: needle ? 'No matching tags' : 'No tags yet' }));
         };
 
+        const header = el('div', { cls: 'pt-tag-bar-header' });
         if (settings.persona_tags.length > 6) {
-            const search = el('input', {
+            header.append(el('input', {
                 cls: 'pt-input pt-tag-bar-search',
                 attrs: { type: 'search', placeholder: 'Filter tags…', value: tagSearchValue },
                 on: { input: (e) => { tagSearchValue = e.target.value; renderChips(); } },
-            });
-            tagBar.querySelector('.pt-tag-bar-header').append(search);
+            }));
         }
+        if (activeCount) {
+            header.append(el('span', { cls: 'pt-tag-bar-active', text: `${activeCount} filter${activeCount > 1 ? 's' : ''} active` }));
+            header.append(el('button', {
+                cls: 'pt-clear-btn menu_button', attrs: { type: 'button' },
+                on: { click: () => { changeView(() => { view.tags = []; }); renderTagBar(); } },
+            }, icon('fa-xmark'), el('span', { text: 'Clear' })));
+        }
+        if (header.children.length) tagBar.append(header);
 
         renderChips();
         tagBar.append(chips);

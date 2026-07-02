@@ -728,6 +728,57 @@
 }
 
 /* ============================================================
+   Persona panel header row (ST's own controls, tidied up)
+   ============================================================ */
+
+#persona-management-block .persona_management_left_column > .flex-container.marginBot10.alignitemscenter {
+    gap: 6px;
+    row-gap: 6px;
+}
+
+/* The search bar is the flexible centerpiece of the row */
+#persona-management-block #persona_search_bar {
+    flex: 1 1 150px;
+    min-width: 130px;
+    padding: 6px 14px;
+    border: 1px solid var(--pt-border);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--pt-body) 5%, transparent);
+    color: var(--pt-body);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#persona-management-block #persona_search_bar:focus {
+    border-color: var(--pt-accent-border);
+    box-shadow: 0 0 0 2px var(--pt-accent-soft);
+    outline: none;
+}
+
+#persona-management-block #persona_search_bar::placeholder {
+    color: var(--pt-muted);
+}
+
+#persona-management-block #persona_sort_order {
+    border-radius: var(--pt-radius-sm);
+}
+
+/* Pagination hugs the right edge instead of shoving everything around */
+#persona-management-block #persona_pagination_container {
+    flex: 0 1 auto;
+    margin-left: auto;
+}
+
+#persona-management-block #persona_pagination_container .paginationjs {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+}
+
+/* All personas foldered -> zero-entry root list -> "1-0 .. 0" is noise */
+#persona-management-block.pt-root-empty #persona_pagination_container .paginationjs {
+    display: none;
+}
+
+/* ============================================================
    Tag filter bar
    ============================================================ */
 
@@ -750,10 +801,31 @@
     align-items: center;
     gap: 6px;
     font-size: 0.85em;
+    border-radius: 999px;
+    padding: 5px 12px;
+    white-space: nowrap;
+    flex: 0 0 auto;
 }
 
 .pt-tag-bar-toggle.pt-open {
     color: var(--pt-accent);
+    border-color: var(--pt-accent-border);
+}
+
+.pt-tag-toggle-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--pt-accent);
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    font-size: 0.72em;
+    font-weight: 700;
+    line-height: 1;
 }
 
 .pt-tag-bar-active {
@@ -995,6 +1067,10 @@ body.rounded-avatars .pt-member-thumb {
     .pt-quick-menu {
         width: calc(100vw - 20px);
         max-width: 320px;
+    }
+
+    .pt-tag-toggle-label {
+        display: none;
     }
 
     .pt-popover {
