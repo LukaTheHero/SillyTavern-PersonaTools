@@ -85,11 +85,9 @@ This project is licensed under the GNU General Public License v3.0 — see the [
 
 Screenshots below are from v1.x — v2.0.0 keeps the same features with a refreshed look.
 
-<img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/4eeb9b57-8f9f-4c0a-898a-58ea9d6446a4" />
-<img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/34a54b44-c054-4fe2-98da-be10779ed7f9" />
-<img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/b65150db-a7e2-4428-aace-2e6e8a2d3696" />
-<img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/584a7efb-01cb-4173-9775-05569a9554de" />
-<img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/1dc89de2-f29f-4a8e-aed4-3d1c4c39c0ed" />
-<img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/981d7b62-3897-44ae-b3b3-e3684ecbeaf6" />
-<img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/84ae24dd-34ef-4210-940e-a3acb8c6d715" />
-<img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/9c524790-19a9-4fcb-a7a9-6762cace47b2" />
+<img width="1914" height="1155" alt="image" src="https://github.com/user-attachments/assets/f810154b-80c9-45a3-b8c5-dc660e607183" />
+<img width="880" height="872" alt="image" src="https://github.com/user-attachments/assets/e955e42d-dfe4-4a17-b21c-7416cb1c03fe" />
+<img width="600" height="548" alt="image" src="https://github.com/user-attachments/assets/bc6b7d93-d3bf-4aee-9002-3fe7059e907b" />
+<img width="535" height="715" alt="image" src="https://github.com/user-attachments/assets/f73aa3de-0b92-4d1e-8836-611201ec7131" />
+<img width="587" height="413" alt="image" src="https://github.com/user-attachments/assets/1a9bc051-70c8-4b8e-be09-e5667a4073fa" />
+
