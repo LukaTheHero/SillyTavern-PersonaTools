@@ -1,36 +1,35 @@
 # PersonaTools
 
-A combined SillyTavern extension for enhanced persona management. Merges the functionality of QuickPersona, Persona Group Manager, and Persona Tags into one unified extension with additional features.
+A SillyTavern extension for enhanced persona management: folders, tags and a quick persona switcher — in one extension that plays nicely with SillyTavern's own pagination, search and sorting.
 
 ## Features
 
 ### 🎭 Quick Persona Switcher
-- Circular avatar button near the chat input for fast persona switching
-- Clean vertical list popup showing all personas with names and titles
-- Folder groups displayed first with folder icons, ungrouped personas below
-- Currently selected persona highlighted with a checkmark
-- Click a folder to expand and see personas inside
+- Circular avatar button next to the chat input for fast persona switching
+- Instant search box (appears when you have more than a handful of personas)
+- Folders shown as expandable groups; the folder holding your current persona auto-expands
+- Full keyboard support: type to search, ↑/↓ to move, Enter to select, Esc to close
+- Current persona highlighted with a checkmark
+- Styled hover tooltips with persona name and title
 
 ### 📁 Persona Folders
-- Organize personas into folders/groups
-- Folder view in the Persona Management panel with compact folder cards
-- Custom folder names and descriptions
-- Manage folders from each persona card (folder button) or from the folder card itself
-- Rename folders, edit descriptions, add/remove personas
-- Fancy folder names with glow effect
+- Organize personas into folders with names and descriptions
+- Folder cards at the top of the Persona Management panel, with stacked avatar previews and member counts
+- Works *with* SillyTavern's pagination, search box, sorting and grid view — folder contents paginate natively, and searching always searches all personas
+- Breadcrumb header inside a folder with back button and quick edit
+- Rename folders (renaming onto an existing folder merges them), edit descriptions, add/remove personas
+- Deleting is a two-click inline confirmation — no browser popups
 
 ### 🏷️ Persona Tags
 - Create colored tags and assign them to personas
-- Tag filter bar in the Persona Management panel
-- Filter by multiple tags simultaneously (AND logic — shows personas matching ALL selected tags)
-- Tag filtering bypasses folders — shows all matching personas directly
-- Clear Filters button to reset all tag filters
-- Manage tags per persona via a popover (tag button on each persona card)
-- Custom tag colors with light/dark color mode toggle
+- Tag text automatically switches between dark and light for readability on any color
+- Collapsible tag filter bar with usage counts and AND-filtering (shows personas matching *all* selected tags)
+- Click a tag chip on any persona card to toggle that filter
+- Explicit tag deletion (two-click confirm) — tags are never auto-deleted behind your back
+- Random color generator with light/dark palette toggle
 
-### 💬 Styled Tooltips
-- Hover over persona avatars in the quick switcher to see a styled tooltip
-- Shows persona name (bold) and persona title (subtitle) — no more raw filenames
+### ⚡ Fast
+v2.0.0 is a ground-up rewrite. Instead of cloning and hiding SillyTavern's persona cards, PersonaTools now hooks into SillyTavern's own persona filter, so the native list stays native. No polling timers, no cache-busted avatar re-downloads, no retry ladders — everything reacts to SillyTavern's events and renders once.
 
 ## Installation
 
@@ -47,6 +46,8 @@ A combined SillyTavern extension for enhanced persona management. Merges the fun
 2. Clone or download this repository into that folder
 3. Restart SillyTavern
 
+Requires SillyTavern 1.18 or newer.
+
 ## Important: Disable Conflicting Extensions
 
 If you have any of these extensions installed, **disable them** before using PersonaTools to avoid conflicts:
@@ -59,12 +60,11 @@ PersonaTools replaces all three and will automatically migrate your existing fol
 
 ## Data Migration
 
-On first launch, PersonaTools will automatically import:
+On first launch, PersonaTools automatically imports:
 - **Folder groups** from the Personas (SillyTavern-Personas) extension
 - **Tags and tag assignments** from the Persona Tags extension
 
-No manual migration needed!
-
+Upgrading from PersonaTools 1.x keeps all your folders, tags and descriptions — the settings format is unchanged.
 
 ## Credits
 
@@ -82,6 +82,8 @@ This project is licensed under the GNU General Public License v3.0 — see the [
 **LukaTheHero** — [GitHub](https://github.com/LukaTheHero)
 
 ## Screenshots
+
+Screenshots below are from v1.x — v2.0.0 keeps the same features with a refreshed look.
 
 <img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/4eeb9b57-8f9f-4c0a-898a-58ea9d6446a4" />
 <img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/34a54b44-c054-4fe2-98da-be10779ed7f9" />
