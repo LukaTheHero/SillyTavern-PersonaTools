@@ -16,7 +16,7 @@
     'use strict';
 
     const EXT_NAME = 'PersonaTools';
-    const VERSION = '2.0.2';
+    const VERSION = '2.0.3';
     // PersonaTools' entry in personasFilter.filterFunctions. Namespaced to never
     // collide with ST's own FILTER_TYPES keys.
     const FILTER_KEY = 'personaTools__view';
@@ -751,7 +751,17 @@
      */
     function openPopover(anchor, titleText, titleIcon) {
         closePopover();
-        const backdrop = el('div', { cls: 'pt-backdrop', on: { click: () => closePopover() } });
+        // Swallow the backdrop's pointer events entirely: if the click bubbled
+        // to document, ST would treat it as an outside click and close the
+        // whole persona-management drawer along with the popover.
+        const backdrop = el('div', {
+            cls: 'pt-backdrop',
+            on: {
+                click: (e) => { e.stopPropagation(); e.preventDefault(); closePopover(); },
+                mousedown: (e) => { e.stopPropagation(); e.preventDefault(); },
+                mouseup: (e) => e.stopPropagation(),
+            },
+        });
         const header = el('div', { cls: 'pt-popover-header' },
             icon(titleIcon),
             el('span', { cls: 'pt-popover-title', text: titleText }),
@@ -1382,12 +1392,27 @@
         eventSource.on(event_types.CHAT_CHANGED, updateQuickButton);
         eventSource.on(event_types.SETTINGS_UPDATED, updateQuickButton);
         if (event_types.PERSONA_CHANGED) eventSource.on(event_types.PERSONA_CHANGED, updateQuickButton);
-        if (event_types.PERSONA_CREATED) eventSource.on(event_types.PERSONA_CREATED, () => {
-            // A persona created while a folder/tag view is open would be filtered
-            // out of ST's post-create render and look like the creation failed —
-            // drop back to the root view first. (The event fires before ST's
-            // re-render, so its own navigation to the new card works natively.)
-            if ((view.folder || view.tags.length) && personasApi.isPersonaPanelOpen?.()) {
+        if (event_types.PERSONA_CREATED) eventSource.on(event_types.PERSONA_CREATED, (payload) => {
+            const newId = payload && typeof payload === 'object' ? payload.avatarId : null;
+            const srcId = payload && typeof payload === 'object' ? payload.duplicatedFromAvatarId : null;
+            // Duplicates inherit the source persona's folders and tags, so
+            // duplicating inside a folder keeps the copy in that folder.
+            if (newId && srcId) {
+                if (settings.personaGroups[srcId]?.length) settings.personaGroups[newId] = [...settings.personaGroups[srcId]];
+                if (settings.persona_tag_map[srcId]?.length) settings.persona_tag_map[newId] = [...settings.persona_tag_map[srcId]];
+                saveSettings();
+            }
+            // A persona created OUTSIDE the current folder/tag scope would be
+            // filtered out of ST's post-create render and look like the creation
+            // failed — drop back to the root view unless it's visible here.
+            // (The event fires before ST's re-render, so its own navigation to
+            // the new card works natively either way.)
+            const visibleHere = view.folder
+                ? !!(newId && (settings.personaGroups[newId] || []).includes(view.folder))
+                : view.tags.length
+                    ? !!(newId && hasAllTags(newId, view.tags))
+                    : true;
+            if (!visibleHere && personasApi.isPersonaPanelOpen?.()) {
                 view.folder = null;
                 view.tags = [];
                 renderTagBar();
