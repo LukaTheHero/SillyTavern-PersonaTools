@@ -16,7 +16,7 @@
     'use strict';
 
     const EXT_NAME = 'PersonaTools';
-    const VERSION = '2.0.3';
+    const VERSION = '2.1.0';
     // PersonaTools' entry in personasFilter.filterFunctions. Namespaced to never
     // collide with ST's own FILTER_TYPES keys.
     const FILTER_KEY = 'personaTools__view';
@@ -110,6 +110,7 @@
         persona_tags: [],         // [{id, name, color}]
         persona_tag_map: {},      // avatarId -> [tagId]
         folderDescriptions: {},   // folderName -> description
+        folderOrder: {},          // folderName -> [avatarId]
     });
 
     let settings = {};
@@ -155,9 +156,9 @@
     }
 
     /**
-     * Drop descriptions of folders that no longer appear in any persona's
-     * folder list, so an emptied folder's description can't silently resurrect
-     * on a future folder with the same name.
+     * Drop descriptions and custom order lists of folders that no longer appear
+     * in any persona's folder list, so an emptied folder's metadata can't
+     * silently resurrect on a future folder with the same name.
      */
     function pruneOrphanDescriptions() {
         const live = new Set();
@@ -165,6 +166,19 @@
         let pruned = false;
         for (const name of Object.keys(settings.folderDescriptions)) {
             if (!live.has(name)) { delete settings.folderDescriptions[name]; pruned = true; }
+        }
+        for (const [name, order] of Object.entries(settings.folderOrder)) {
+            if (!live.has(name) || !Array.isArray(order)) {
+                delete settings.folderOrder[name];
+                pruned = true;
+            } else {
+                const valid = order.filter(id => (settings.personaGroups[id] || []).includes(name));
+                if (valid.length !== order.length) {
+                    if (valid.length) settings.folderOrder[name] = valid;
+                    else delete settings.folderOrder[name];
+                    pruned = true;
+                }
+            }
         }
         if (pruned) saveSettings();
     }
@@ -201,13 +215,56 @@
         return getFoldersOf(avatarId).length > 0;
     }
 
-    /** Folder members, ghosts (deleted personas) excluded. */
+    /**
+     * Folder members in the user's custom order (falling back to ST's name sort
+     * for members that haven't been explicitly ordered yet), ghosts excluded.
+     */
     function getFolderMembers(folderName) {
-        const members = [];
+        const memberSet = new Set();
         for (const [avatarId, folders] of Object.entries(settings.personaGroups)) {
-            if (folders.includes(folderName) && personaExists(avatarId)) members.push(avatarId);
+            if (folders.includes(folderName) && personaExists(avatarId)) memberSet.add(avatarId);
         }
-        return members;
+        if (!memberSet.size) return [];
+
+        const savedOrder = Array.isArray(settings.folderOrder[folderName]) ? settings.folderOrder[folderName] : [];
+        const ordered = [];
+        const seen = new Set();
+        for (const id of savedOrder) {
+            if (memberSet.has(id) && !seen.has(id)) {
+                ordered.push(id);
+                seen.add(id);
+            }
+        }
+        const remaining = [...memberSet].filter(id => !seen.has(id));
+        if (remaining.length > 0) {
+            const desc = powerUser && powerUser.persona_sort_order === 'desc';
+            remaining.sort((a, b) => {
+                const aName = String(getPersonaName(a));
+                const bName = String(getPersonaName(b));
+                return desc ? bName.localeCompare(aName) : aName.localeCompare(bName);
+            });
+            ordered.push(...remaining);
+        }
+        return ordered;
+    }
+
+    /**
+     * Persist a new member order for `folderName`. If only a subset of the
+     * folder is visible (e.g. pagination or tag filter active), the visible
+     * subset is reordered into its existing slots while hidden members keep
+     * their positions.
+     */
+    function setFolderMemberOrder(folderName, visibleOrderedIds) {
+        if (!folderName || !Array.isArray(visibleOrderedIds) || visibleOrderedIds.length < 2) return;
+        const full = getFolderMembers(folderName);
+        const validVisible = visibleOrderedIds.filter(id => full.includes(id));
+        const visibleSet = new Set(validVisible);
+        if (visibleSet.size < 2) return;
+
+        let cursor = 0;
+        const nextOrder = full.map(id => visibleSet.has(id) ? validVisible[cursor++] : id);
+        settings.folderOrder[folderName] = nextOrder;
+        saveSettings();
     }
 
     function getAllFolders() {
@@ -219,6 +276,13 @@
             .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
     }
 
+    // Metadata of folders emptied this session, so an exploratory
+    // uncheck/recheck in the folders popover doesn't lose the description
+    // or custom ordering, while a truly abandoned folder can't resurrect
+    // stale metadata on a future folder with the same name.
+    const emptiedDescStash = new Map();
+    const emptiedOrderStash = new Map();
+
     function addToFolder(avatarId, folderName) {
         if (!settings.personaGroups[avatarId]) settings.personaGroups[avatarId] = [];
         if (!settings.personaGroups[avatarId].includes(folderName)) {
@@ -227,15 +291,16 @@
                 settings.folderDescriptions[folderName] = emptiedDescStash.get(folderName);
                 emptiedDescStash.delete(folderName);
             }
+            if (emptiedOrderStash.has(folderName) && settings.folderOrder[folderName] === undefined) {
+                settings.folderOrder[folderName] = emptiedOrderStash.get(folderName);
+                emptiedOrderStash.delete(folderName);
+            }
+            if (Array.isArray(settings.folderOrder[folderName]) && !settings.folderOrder[folderName].includes(avatarId)) {
+                settings.folderOrder[folderName].push(avatarId);
+            }
             saveSettings();
         }
     }
-
-    // Descriptions of folders emptied this session, so an exploratory
-    // uncheck/recheck in the folders popover doesn't lose the description,
-    // while a truly abandoned folder can't resurrect its stale description
-    // on a future folder with the same name.
-    const emptiedDescStash = new Map();
 
     function folderStillReferenced(folderName) {
         return Object.values(settings.personaGroups).some(folders => folders.includes(folderName));
@@ -248,9 +313,17 @@
         if (idx > -1) {
             folders.splice(idx, 1);
             if (folders.length === 0) delete settings.personaGroups[avatarId];
-            if (!folderStillReferenced(folderName) && settings.folderDescriptions[folderName] !== undefined) {
-                emptiedDescStash.set(folderName, settings.folderDescriptions[folderName]);
-                delete settings.folderDescriptions[folderName];
+            if (!folderStillReferenced(folderName)) {
+                if (settings.folderDescriptions[folderName] !== undefined) {
+                    emptiedDescStash.set(folderName, settings.folderDescriptions[folderName]);
+                    delete settings.folderDescriptions[folderName];
+                }
+                if (settings.folderOrder[folderName] !== undefined) {
+                    emptiedOrderStash.set(folderName, settings.folderOrder[folderName]);
+                    delete settings.folderOrder[folderName];
+                }
+            } else if (Array.isArray(settings.folderOrder[folderName])) {
+                settings.folderOrder[folderName] = settings.folderOrder[folderName].filter(id => id !== avatarId);
             }
             saveSettings();
         }
@@ -269,6 +342,16 @@
             settings.folderDescriptions[newName] = settings.folderDescriptions[oldName];
         }
         delete settings.folderDescriptions[oldName];
+        if (Array.isArray(settings.folderOrder[oldName])) {
+            if (Array.isArray(settings.folderOrder[newName])) {
+                for (const id of settings.folderOrder[oldName]) {
+                    if (!settings.folderOrder[newName].includes(id)) settings.folderOrder[newName].push(id);
+                }
+            } else {
+                settings.folderOrder[newName] = settings.folderOrder[oldName];
+            }
+        }
+        delete settings.folderOrder[oldName];
         if (view.folder === oldName) view.folder = newName;
         saveSettings();
     }
@@ -282,6 +365,7 @@
             }
         }
         delete settings.folderDescriptions[folderName];
+        delete settings.folderOrder[folderName];
         if (view.folder === folderName) view.folder = null;
         saveSettings();
     }
@@ -372,8 +456,19 @@
             // ...but searching bypasses folder scoping, so it finds everything.
             if (isSearchActive()) return data;
             if (view.folder) {
-                const members = new Set(getFolderMembers(view.folder));
-                return data.filter(id => members.has(id));
+                const allowed = new Set(data);
+                const ordered = getFolderMembers(view.folder).filter(id => allowed.has(id));
+                // ST's getUserAvatars() immediately runs sortPersonas(entities)
+                // on the array returned by applyFilters(). Suppress that single
+                // in-place .sort() call so the folder's custom order is preserved.
+                Object.defineProperty(ordered, 'sort', {
+                    value() {
+                        delete this.sort;
+                        return this;
+                    },
+                    configurable: true,
+                });
+                return ordered;
             }
             if (view.tags.length) return data;
             if (getAllFolders().length) return data.filter(id => !isGrouped(id));
@@ -439,23 +534,26 @@
     };
 
     let decorateQueued = false;
+    let isDraggingPersona = false;
+    let suppressClickUntil = 0;
     // Set when the user touches ST's change-image UI: ST refreshes the persona
     // thumbnail without emitting an event, so the quick button must force-reload
     // its (otherwise identical) image URL on the next re-render.
     let pendingAvatarRefresh = false;
 
     function scheduleDecorate() {
-        if (decorateQueued) return;
+        if (decorateQueued || isDraggingPersona) return;
         decorateQueued = true;
         requestAnimationFrame(() => {
             decorateQueued = false;
-            decorate();
+            if (!isDraggingPersona) decorate();
         });
     }
 
     function decorate() {
         const block = document.querySelector(SEL.block);
         if (!block) return;
+        block.classList.toggle('pt-folder-open', !!view.folder && !isSearchActive());
         renderFolderCards(block);
         decorateNativeCards(block);
         updateFolderHeader();
@@ -482,6 +580,7 @@
      * or the panel would stay blank.
      */
     function hasForeignMutations(records) {
+        if (isDraggingPersona) return false;
         let injectedAdded = false;
         let injectedRemoved = false;
         for (const record of records) {
@@ -504,6 +603,307 @@
             if (hasForeignMutations(records)) scheduleDecorate();
         });
         observer.observe(block, { childList: true });
+    }
+
+    // ============================================
+    // DRAG-TO-REORDER (inside folders & folder editor)
+    // ============================================
+
+    /**
+     * Enables click-and-hold / drag reordering on direct child items of `container`.
+     * Translates the dragged item in place so all native ST styles and layouts
+     * remain intact, while sibling items animate smoothly via FLIP.
+     *
+     * @param {HTMLElement} container
+     * @param {{
+     *   itemSelector: string,
+     *   idAttr: string,
+     *   canDrag: () => boolean,
+     *   onReorder: (orderedIds: string[]) => void,
+     * }} opts
+     */
+    function enableDragReorder(container, { itemSelector, idAttr, canDrag, onReorder }) {
+        if (!container || container._ptDragReorderBound) return;
+        container._ptDragReorderBound = true;
+
+        const HOLD_DELAY_MS = 160;
+        const MOUSE_DRAG_THRESHOLD_PX = 5;
+        const TOUCH_CANCEL_THRESHOLD_PX = 8;
+        const AUTO_SCROLL_EDGE_PX = 54;
+        const AUTO_SCROLL_MAX_SPEED = 14;
+
+        container.addEventListener('dragstart', (e) => {
+            if (canDrag()) e.preventDefault();
+        });
+
+        function getLayoutRect(node, containerRect) {
+            if (node.offsetParent === container) {
+                return {
+                    left: containerRect.left + container.clientLeft + node.offsetLeft - container.scrollLeft,
+                    top: containerRect.top + container.clientTop + node.offsetTop - container.scrollTop,
+                    width: node.offsetWidth,
+                    height: node.offsetHeight,
+                };
+            }
+            const r = node.getBoundingClientRect();
+            return {
+                left: r.left - (node._ptTx || 0),
+                top: r.top - (node._ptTy || 0),
+                width: r.width,
+                height: r.height,
+            };
+        }
+
+        container.addEventListener('pointerdown', (e) => {
+            if (!canDrag() || e.button !== 0) return;
+            if (e.target.closest('button, input, select, textarea, a, .pt-card-actions, .pt-tag-chip, .pt-folder-card')) return;
+            const item = e.target.closest(itemSelector);
+            if (!item || !container.contains(item)) return;
+
+            const allItems = [...container.querySelectorAll(itemSelector)];
+            if (allItems.length < 2) return;
+
+            const pointerId = e.pointerId;
+            const isMouse = e.pointerType === 'mouse';
+            const startX = e.clientX;
+            const startY = e.clientY;
+            let curX = startX;
+            let curY = startY;
+
+            const initialRect = item.getBoundingClientRect();
+            const grabOffsetX = startX - initialRect.left;
+            const grabOffsetY = startY - initialRect.top;
+            const initialNodes = allItems.slice();
+            const initialIds = initialNodes.map(n => n.getAttribute(idAttr)).filter(Boolean);
+            const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
+            let dragging = false;
+            let holdTimer = null;
+            let scrollRaf = 0;
+
+            function beginDrag() {
+                if (dragging) return;
+                dragging = true;
+                isDraggingPersona = true;
+                hideTooltip();
+                try { window.getSelection()?.removeAllRanges(); } catch { /* ignore */ }
+
+                item.classList.add('pt-dragging');
+                container.classList.add('pt-is-reordering');
+                document.body.classList.add('pt-grabbing');
+                try { container.setPointerCapture(pointerId); } catch { /* ignore */ }
+
+                updateDrag();
+                scrollRaf = requestAnimationFrame(autoScrollTick);
+            }
+
+            function updateDrag() {
+                if (!dragging) return;
+                const isGrid = container.classList.contains('gridView');
+                const containerRect = container.getBoundingClientRect();
+                const desiredLeft = curX - grabOffsetX;
+                const desiredTop = curY - grabOffsetY;
+                const dragCenterX = desiredLeft + item.offsetWidth / 2;
+                const dragCenterY = desiredTop + item.offsetHeight / 2;
+
+                const siblings = [...container.querySelectorAll(itemSelector)].filter(n => n !== item);
+                let refNode = null;
+                for (const sib of siblings) {
+                    const sr = getLayoutRect(sib, containerRect);
+                    const sMidX = sr.left + sr.width / 2;
+                    const sMidY = sr.top + sr.height / 2;
+                    const sBottom = sr.top + sr.height;
+                    if (!isGrid) {
+                        if (dragCenterY < sMidY) { refNode = sib; break; }
+                    } else {
+                        if (dragCenterY < sr.top || (dragCenterY <= sBottom && dragCenterX < sMidX)) {
+                            refNode = sib;
+                            break;
+                        }
+                    }
+                }
+
+                if (refNode !== item.nextElementSibling && refNode !== item) {
+                    const firstRects = reducedMotion
+                        ? null
+                        : new Map(siblings.map(s => [s, s.getBoundingClientRect()]));
+
+                    container.insertBefore(item, refNode);
+
+                    if (firstRects) {
+                        for (const sib of siblings) {
+                            const first = firstRects.get(sib);
+                            const last = getLayoutRect(sib, containerRect);
+                            const dx = first.left - last.left;
+                            const dy = first.top - last.top;
+                            if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+                                sib.style.transition = 'none';
+                                sib.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+                                sib._ptTx = dx;
+                                sib._ptTy = dy;
+                                void sib.offsetHeight;
+                                sib.style.transition = 'transform 180ms cubic-bezier(0.2, 0, 0, 1)';
+                                sib.style.transform = '';
+                                sib._ptTx = 0;
+                                sib._ptTy = 0;
+                            }
+                        }
+                    }
+                }
+
+                const layout = getLayoutRect(item, containerRect);
+                const tx = desiredLeft - layout.left;
+                const ty = desiredTop - layout.top;
+                item._ptTx = tx;
+                item._ptTy = ty;
+                item.style.transition = 'none';
+                item.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+            }
+
+            function autoScrollTick() {
+                if (!dragging) return;
+                const cr = container.getBoundingClientRect();
+                let delta = 0;
+                if (curY < cr.top + AUTO_SCROLL_EDGE_PX && container.scrollTop > 0) {
+                    const ratio = Math.min(1, (cr.top + AUTO_SCROLL_EDGE_PX - curY) / AUTO_SCROLL_EDGE_PX);
+                    delta = -Math.ceil(AUTO_SCROLL_MAX_SPEED * ratio * ratio);
+                } else if (
+                    curY > cr.bottom - AUTO_SCROLL_EDGE_PX &&
+                    container.scrollTop < container.scrollHeight - container.clientHeight
+                ) {
+                    const ratio = Math.min(1, (curY - (cr.bottom - AUTO_SCROLL_EDGE_PX)) / AUTO_SCROLL_EDGE_PX);
+                    delta = Math.ceil(AUTO_SCROLL_MAX_SPEED * ratio * ratio);
+                }
+                if (delta !== 0) {
+                    const prev = container.scrollTop;
+                    container.scrollTop += delta;
+                    if (container.scrollTop !== prev) updateDrag();
+                }
+                scrollRaf = requestAnimationFrame(autoScrollTick);
+            }
+
+            function onPointerMove(ev) {
+                if (ev.pointerId !== pointerId) return;
+                curX = ev.clientX;
+                curY = ev.clientY;
+                if (!dragging) {
+                    const dist = Math.hypot(curX - startX, curY - startY);
+                    if (isMouse && dist >= MOUSE_DRAG_THRESHOLD_PX) {
+                        clearTimeout(holdTimer);
+                        holdTimer = null;
+                        beginDrag();
+                    } else if (!isMouse && dist >= TOUCH_CANCEL_THRESHOLD_PX) {
+                        // Touch moved before hold threshold -> let native scroll proceed
+                        cleanupListeners();
+                    }
+                    return;
+                }
+                ev.preventDefault();
+                updateDrag();
+            }
+
+            function onPointerUp(ev) {
+                if (ev.pointerId !== pointerId) return;
+                finishDrag(false);
+            }
+
+            function onPointerCancel(ev) {
+                if (ev.pointerId !== pointerId) return;
+                finishDrag(true);
+            }
+
+            function onKeyDown(ev) {
+                if (ev.key === 'Escape' && dragging) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    window.addEventListener('pointerup', () => { suppressClickUntil = Date.now() + 60; }, { once: true, capture: true });
+                    finishDrag(true);
+                }
+            }
+
+            function cleanupListeners() {
+                clearTimeout(holdTimer);
+                holdTimer = null;
+                cancelAnimationFrame(scrollRaf);
+                scrollRaf = 0;
+                window.removeEventListener('pointermove', onPointerMove, true);
+                window.removeEventListener('pointerup', onPointerUp, true);
+                window.removeEventListener('pointercancel', onPointerCancel, true);
+                window.removeEventListener('keydown', onKeyDown, true);
+                try {
+                    if (container.hasPointerCapture(pointerId)) container.releasePointerCapture(pointerId);
+                } catch { /* ignore */ }
+            }
+
+            function finishDrag(cancelled) {
+                const wasDragging = dragging;
+                dragging = false;
+                cleanupListeners();
+
+                if (!wasDragging) return;
+
+                // Suppress the synthetic click that follows pointerup so ST
+                // doesn't switch the active persona when dropping a card.
+                if (!cancelled) suppressClickUntil = Date.now() + 60;
+                document.body.classList.remove('pt-grabbing');
+                container.classList.remove('pt-is-reordering');
+
+                if (cancelled) {
+                    for (const node of initialNodes) container.append(node);
+                } else {
+                    const nextIds = [...container.querySelectorAll(itemSelector)]
+                        .map(n => n.getAttribute(idAttr))
+                        .filter(Boolean);
+                    if (nextIds.some((id, i) => id !== initialIds[i])) {
+                        onReorder(nextIds);
+                    }
+                }
+
+                const clearStyles = () => {
+                    item.classList.remove('pt-dragging');
+                    for (const node of container.querySelectorAll(itemSelector)) {
+                        node.style.transition = '';
+                        node.style.transform = '';
+                        node._ptTx = 0;
+                        node._ptTy = 0;
+                    }
+                    isDraggingPersona = false;
+                };
+
+                if (reducedMotion || (!item._ptTx && !item._ptTy)) {
+                    clearStyles();
+                } else {
+                    item.style.transition = 'transform 150ms cubic-bezier(0.2, 0, 0, 1), box-shadow 150ms ease';
+                    item.style.transform = 'translate3d(0, 0, 0)';
+                    item._ptTx = 0;
+                    item._ptTy = 0;
+                    setTimeout(clearStyles, 160);
+                }
+            }
+
+            holdTimer = setTimeout(() => {
+                holdTimer = null;
+                beginDrag();
+            }, HOLD_DELAY_MS);
+
+            window.addEventListener('pointermove', onPointerMove, true);
+            window.addEventListener('pointerup', onPointerUp, true);
+            window.addEventListener('pointercancel', onPointerCancel, true);
+            window.addEventListener('keydown', onKeyDown, true);
+        });
+    }
+
+    function startCardReorder() {
+        const block = document.querySelector(SEL.block);
+        if (!block) return;
+        enableDragReorder(block, {
+            itemSelector: `${SEL.card}:not(.pt-folder-card)`,
+            idAttr: 'data-avatar-id',
+            canDrag: () => !!view.folder && !isSearchActive(),
+            onReorder: (orderedIds) => {
+                if (view.folder) setFolderMemberOrder(view.folder, orderedIds);
+            },
+        });
     }
 
     // --- Folder cards ---
@@ -902,7 +1302,7 @@
         const descInput = el('input', { cls: 'pt-input', attrs: { type: 'text', placeholder: 'Description (optional)' } });
         descInput.value = settings.folderDescriptions[folderName] || '';
 
-        const list = el('div', { cls: 'pt-popover-list' });
+        const list = el('div', { cls: 'pt-popover-list pt-member-list' });
         function renderMembers() {
             list.replaceChildren();
             const members = getFolderMembers(folderName);
@@ -911,9 +1311,15 @@
                 return;
             }
             for (const avatarId of members) {
-                list.append(el('div', { cls: 'pt-member-row' },
-                    el('img', { cls: 'pt-member-thumb', attrs: { src: thumbUrl(avatarId), alt: '', loading: 'lazy' } }),
+                const title = getPersonaTitle(avatarId);
+                const info = el('div', { cls: 'pt-member-info' },
                     el('span', { cls: 'pt-member-name', text: getPersonaName(avatarId) }),
+                    title ? el('span', { cls: 'pt-member-title', text: title }) : null,
+                );
+                list.append(el('div', { cls: 'pt-member-row', attrs: { 'data-avatar-id': avatarId } },
+                    el('span', { cls: 'pt-member-grip', title: 'Drag to reorder' }, icon('fa-grip-vertical')),
+                    el('img', { cls: 'pt-member-thumb', attrs: { src: thumbUrl(avatarId), alt: '', loading: 'lazy' } }),
+                    info,
                     el('button', {
                         cls: 'pt-icon-btn', title: 'Remove from folder', attrs: { type: 'button' },
                         on: {
@@ -931,6 +1337,16 @@
                 ));
             }
         }
+
+        enableDragReorder(list, {
+            itemSelector: '.pt-member-row',
+            idAttr: 'data-avatar-id',
+            canDrag: () => true,
+            onReorder: (orderedIds) => {
+                setFolderMemberOrder(folderName, orderedIds);
+                refreshListSoon();
+            },
+        });
 
         const initialDesc = settings.folderDescriptions[folderName] || '';
         const saveBtn = el('button', {
@@ -1361,6 +1777,11 @@
         if (avatarId) {
             delete settings.personaGroups[avatarId];
             delete settings.persona_tag_map[avatarId];
+            for (const [folderName, order] of Object.entries(settings.folderOrder)) {
+                if (Array.isArray(order)) {
+                    settings.folderOrder[folderName] = order.filter(id => id !== avatarId);
+                }
+            }
             if (view.folder && !getFolderMembers(view.folder).length) view.folder = null;
             pruneOrphanDescriptions();
             saveSettings();
@@ -1388,6 +1809,7 @@
         createFolderHeader();
         createTagBar();
         startObserver();
+        startCardReorder();
 
         eventSource.on(event_types.CHAT_CHANGED, updateQuickButton);
         eventSource.on(event_types.SETTINGS_UPDATED, updateQuickButton);
@@ -1396,9 +1818,19 @@
             const newId = payload && typeof payload === 'object' ? payload.avatarId : null;
             const srcId = payload && typeof payload === 'object' ? payload.duplicatedFromAvatarId : null;
             // Duplicates inherit the source persona's folders and tags, so
-            // duplicating inside a folder keeps the copy in that folder.
+            // duplicating inside a folder keeps the copy in that folder right
+            // next to the source persona.
             if (newId && srcId) {
-                if (settings.personaGroups[srcId]?.length) settings.personaGroups[newId] = [...settings.personaGroups[srcId]];
+                if (settings.personaGroups[srcId]?.length) {
+                    settings.personaGroups[newId] = [...settings.personaGroups[srcId]];
+                    for (const folderName of settings.personaGroups[srcId]) {
+                        const order = settings.folderOrder[folderName];
+                        if (Array.isArray(order)) {
+                            const srcIdx = order.indexOf(srcId);
+                            if (srcIdx > -1 && !order.includes(newId)) order.splice(srcIdx + 1, 0, newId);
+                        }
+                    }
+                }
                 if (settings.persona_tag_map[srcId]?.length) settings.persona_tag_map[newId] = [...settings.persona_tag_map[srcId]];
                 saveSettings();
             }
@@ -1425,6 +1857,17 @@
         // the quick-button refresh is cheap (src-compare, no fetch), so no decorate.
         if (event_types.PERSONA_UPDATED) eventSource.on(event_types.PERSONA_UPDATED, updateQuickButton);
         if (event_types.PERSONA_DELETED) eventSource.on(event_types.PERSONA_DELETED, onPersonaDeleted);
+
+        // Capture-phase click blocker after finishing a drag-reorder so releasing
+        // a card doesn't trigger ST's delegated click handler (setUserAvatar).
+        document.addEventListener('click', (e) => {
+            if (Date.now() < suppressClickUntil) {
+                suppressClickUntil = 0;
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                e.preventDefault();
+            }
+        }, true);
 
         document.addEventListener('click', (e) => {
             if (quickMenu && !e.target.closest('#quickPersonaMenu') && !e.target.closest('#quickPersona')) {

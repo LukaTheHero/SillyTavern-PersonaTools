@@ -1,5 +1,5 @@
 /* ============================================================
-   PersonaTools v2.0.0
+   PersonaTools v2.1.0
    Theme-variable driven; falls back gracefully on any ST theme.
    ============================================================ */
 
@@ -620,6 +620,33 @@
    Per-card actions + tag chips on native persona cards
    ============================================================ */
 
+#user_avatar_block {
+    position: relative;
+}
+
+#user_avatar_block.pt-folder-open .avatar-container:not(.pt-folder-card) {
+    cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+body.pt-grabbing,
+body.pt-grabbing * {
+    cursor: grabbing !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
+.pt-dragging {
+    position: relative;
+    z-index: 50 !important;
+    cursor: grabbing !important;
+    background: var(--pt-surface) !important;
+    border-color: var(--pt-accent) !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55), 0 0 0 2px var(--pt-accent) !important;
+    pointer-events: none;
+}
+
 .pt-card-actions {
     display: inline-flex;
     gap: 2px;
@@ -966,6 +993,7 @@
 }
 
 .pt-popover-list {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -1027,11 +1055,25 @@
     gap: 9px;
     padding: 5px 8px;
     border-radius: var(--pt-radius-sm);
+    cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
     transition: background 0.12s ease;
 }
 
 .pt-member-row:hover {
     background: var(--pt-hover);
+}
+
+.pt-member-grip {
+    color: var(--pt-muted);
+    font-size: 11px;
+    opacity: 0.55;
+    flex-shrink: 0;
+}
+
+.pt-member-row:hover .pt-member-grip {
+    opacity: 0.9;
 }
 
 .pt-member-thumb {
@@ -1043,10 +1085,24 @@
     border: 1px solid var(--pt-border);
 }
 
-.pt-member-name {
+.pt-member-info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.pt-member-name {
     font-size: 0.9em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pt-member-title {
+    font-size: 0.74em;
+    color: var(--pt-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

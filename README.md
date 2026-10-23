@@ -14,6 +14,7 @@ A SillyTavern extension for enhanced persona management: folders, tags and a qui
 
 ### 📁 Persona Folders
 - Organize personas into folders with names and descriptions
+- **Click and hold (drag and drop) to reorder personas inside folders** — works directly on persona cards in both list and grid views, as well as inside the folder editor popover (and determines the folder's preview avatars and Quick Switcher order)
 - Folder cards at the top of the Persona Management panel, with stacked avatar previews and member counts
 - Works *with* SillyTavern's pagination, search box, sorting and grid view — folder contents paginate natively, and searching always searches all personas
 - Breadcrumb header inside a folder with back button and quick edit
@@ -90,4 +91,3 @@ Screenshots below V2.0.0
 <img width="600" height="548" alt="image" src="https://github.com/user-attachments/assets/bc6b7d93-d3bf-4aee-9002-3fe7059e907b" />
 <img width="535" height="715" alt="image" src="https://github.com/user-attachments/assets/f73aa3de-0b92-4d1e-8836-611201ec7131" />
 <img width="587" height="413" alt="image" src="https://github.com/user-attachments/assets/1a9bc051-70c8-4b8e-be09-e5667a4073fa" />
-
