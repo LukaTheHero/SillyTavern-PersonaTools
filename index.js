@@ -556,8 +556,10 @@
         block.classList.toggle('pt-folder-open', !!view.folder && !isSearchActive());
         renderFolderCards(block);
         decorateNativeCards(block);
+        decorateSelection(block);
         updateFolderHeader();
         renderTagBar();
+        renderSelectionUi();
         // With every persona foldered, the root list has zero native entries and
         // ST's pagination navigator renders a confusing "1-0 .. 0" — hide it.
         const panel = document.querySelector(SEL.panel);
@@ -899,7 +901,7 @@
         enableDragReorder(block, {
             itemSelector: `${SEL.card}:not(.pt-folder-card)`,
             idAttr: 'data-avatar-id',
-            canDrag: () => !!view.folder && !isSearchActive(),
+            canDrag: () => !!view.folder && !isSearchActive() && !selection.active,
             onReorder: (orderedIds) => {
                 if (view.folder) setFolderMemberOrder(view.folder, orderedIds);
             },
@@ -944,7 +946,11 @@
             },
         }, icon('fa-pen'));
 
-        const open = () => changeView(() => { view.folder = name; });
+        // In selection mode, keyboard activation selects instead of opening
+        // (mouse clicks are intercepted earlier, see createSelectionUi).
+        const open = () => selection.active
+            ? toggleSelected(selection.folders, name)
+            : changeView(() => { view.folder = name; });
         return el('div', {
             cls: 'pt-folder-card pt-injected',
             attrs: { role: 'button', tabindex: '0', 'data-folder': name },
@@ -1039,6 +1045,258 @@
                 el('span', { cls: 'pt-folder-count', text: String(getFolderMembers(view.folder).length) }),
             );
         }
+    }
+
+    // ============================================
+    // MASS DELETE — selection mode + deleting personas
+    // ============================================
+
+    // Selection mode: clicking a persona card or folder card toggles its
+    // selection instead of switching persona / opening the folder. Selecting
+    // a folder selects every persona inside it. Survives page and view changes.
+    const selection = {
+        active: false,
+        personas: new Set(),   // avatarIds
+        folders: new Set(),    // folder names
+    };
+
+    let selectToggleBtn = null;
+    let selectBar = null;
+
+    /** Every persona the current selection would delete (folders expanded). */
+    function getSelectedAvatarIds() {
+        const ids = new Set();
+        for (const id of selection.personas) if (personaExists(id)) ids.add(id);
+        for (const name of selection.folders) getFolderMembers(name).forEach(id => ids.add(id));
+        return [...ids];
+    }
+
+    function setSelectionMode(active) {
+        selection.active = active;
+        selection.personas.clear();
+        selection.folders.clear();
+        renderSelectionUi();
+        scheduleDecorate();
+    }
+
+    function toggleSelected(set, key) {
+        if (set.has(key)) set.delete(key);
+        else set.add(key);
+        renderSelectionUi();
+        scheduleDecorate();
+    }
+
+    function createSelectionUi() {
+        const block = document.querySelector(SEL.block);
+        const headerRow = document.querySelector(SEL.headerRow);
+        if (!block || !headerRow || selectToggleBtn) return;
+
+        selectToggleBtn = el('button', {
+            cls: 'pt-select-toggle menu_button', title: 'Select personas and folders to delete',
+            attrs: { type: 'button' },
+            on: { click: () => setSelectionMode(!selection.active) },
+        }, icon('fa-check-double'), el('span', { cls: 'pt-select-toggle-label', text: 'Select' }));
+        const anchor = headerRow.querySelector('.pt-tag-bar-toggle') || headerRow.querySelector('#persona_search_bar');
+        if (anchor) anchor.insertAdjacentElement('afterend', selectToggleBtn);
+        else headerRow.append(selectToggleBtn);
+
+        selectBar = el('div', { cls: 'pt-select-bar pt-hidden' });
+        block.parentNode.insertBefore(selectBar, block);
+
+        // Capture phase on the list itself: runs before ST's delegated
+        // document-level click handler (which would switch persona) and before
+        // the folder card's own click handler (which would open the folder).
+        block.addEventListener('click', (e) => {
+            if (!selection.active) return;
+            const card = e.target.closest(`${SEL.card}, .pt-folder-card`);
+            if (!card || !block.contains(card)) return;
+            e.preventDefault();
+            e.stopPropagation();
+            if (card.classList.contains('pt-folder-card')) toggleSelected(selection.folders, card.getAttribute('data-folder'));
+            else if (card.getAttribute('data-avatar-id')) toggleSelected(selection.personas, card.getAttribute('data-avatar-id'));
+        }, true);
+
+        renderSelectionUi();
+    }
+
+    function renderSelectionUi() {
+        if (!selectToggleBtn || !selectBar) return;
+        selectToggleBtn.classList.toggle('pt-open', selection.active);
+        selectBar.classList.toggle('pt-hidden', !selection.active);
+        selectBar.replaceChildren();
+        if (!selection.active) return;
+
+        const count = getSelectedAvatarIds().length;
+        const folderCount = selection.folders.size;
+        let label = count ? `${count} persona${count === 1 ? '' : 's'} selected` : 'Click personas or folders to select them';
+        if (folderCount) label += ` (incl. ${folderCount} folder${folderCount === 1 ? '' : 's'})`;
+
+        const selectPageBtn = el('button', {
+            cls: 'menu_button', title: 'Select everything shown on this page', attrs: { type: 'button' },
+            on: {
+                click: () => {
+                    const block = document.querySelector(SEL.block);
+                    if (!block) return;
+                    block.querySelectorAll('.pt-folder-card').forEach(c => selection.folders.add(c.getAttribute('data-folder')));
+                    block.querySelectorAll(`${SEL.card}:not(.pt-folder-card)`).forEach(c => {
+                        const id = c.getAttribute('data-avatar-id');
+                        if (id) selection.personas.add(id);
+                    });
+                    renderSelectionUi();
+                    scheduleDecorate();
+                },
+            },
+        }, icon('fa-square-check'), el('span', { text: 'All on page' }));
+
+        const clearBtn = el('button', {
+            cls: 'menu_button', title: 'Deselect everything', attrs: { type: 'button' },
+            on: { click: () => { selection.personas.clear(); selection.folders.clear(); renderSelectionUi(); scheduleDecorate(); } },
+        }, icon('fa-eraser'), el('span', { text: 'None' }));
+
+        const deleteBtn = el('button', {
+            cls: 'pt-danger-btn menu_button', title: 'Permanently delete the selected personas', attrs: { type: 'button' },
+            on: {
+                click: async () => {
+                    const folders = [...selection.folders];
+                    const done = await deletePersonasWithConfirm(getSelectedAvatarIds(), folders);
+                    if (done) setSelectionMode(false);
+                },
+            },
+        }, icon('fa-trash-can'), el('span', { text: count ? `Delete ${count}` : 'Delete' }));
+        deleteBtn.disabled = !count;
+
+        const doneBtn = el('button', {
+            cls: 'menu_button', title: 'Leave selection mode', attrs: { type: 'button' },
+            on: { click: () => setSelectionMode(false) },
+        }, icon('fa-xmark'), el('span', { text: 'Done' }));
+
+        selectBar.append(
+            el('span', { cls: 'pt-select-count', text: label }),
+            el('div', { cls: 'pt-select-actions' }, selectPageBtn, clearBtn, deleteBtn, doneBtn),
+        );
+    }
+
+    /** Mark selected cards in the current list (runs on every decorate). */
+    function decorateSelection(block) {
+        block.classList.toggle('pt-select-mode', selection.active);
+        for (const card of block.querySelectorAll(`${SEL.card}, .pt-folder-card`)) {
+            const isFolder = card.classList.contains('pt-folder-card');
+            const selected = selection.active && (isFolder
+                ? selection.folders.has(card.getAttribute('data-folder'))
+                : selection.personas.has(card.getAttribute('data-avatar-id')));
+            card.classList.toggle('pt-sel', selected);
+            let check = card.querySelector(':scope > .pt-select-check');
+            if (selection.active && !check) {
+                check = el('span', { cls: 'pt-select-check', attrs: { 'aria-hidden': 'true' } }, icon('fa-check'));
+                card.prepend(check);
+            } else if (!selection.active && check) {
+                check.remove();
+            }
+            if (selection.active) card.setAttribute('aria-selected', String(selected));
+            else card.removeAttribute('aria-selected');
+        }
+    }
+
+    /**
+     * Ask for confirmation (SillyTavern's own modal, listing every persona),
+     * then delete. Folders in `folderNames` are removed afterwards if every
+     * persona was deleted. Resolves true if the user went through with it.
+     * @param {string[]} avatarIds
+     * @param {string[]} [folderNames]
+     */
+    async function deletePersonasWithConfirm(avatarIds, folderNames = []) {
+        const ids = avatarIds.filter(personaExists);
+        if (!ids.length && !folderNames.length) return false;
+        if (ids.length && !(await confirmPersonaDeletion(ids, folderNames))) return false;
+
+        const { deleted, failed } = await deletePersonas(ids);
+        if (!failed) {
+            changeView(() => folderNames.forEach(deleteFolder));
+        } else {
+            refreshListSoon();
+        }
+        if (failed) toastr.error(`${failed} persona${failed === 1 ? '' : 's'} could not be deleted — see the browser console.`, EXT_NAME);
+        if (deleted) toastr.success(`Deleted ${deleted} persona${deleted === 1 ? '' : 's'}.`, EXT_NAME);
+        return true;
+    }
+
+    async function confirmPersonaDeletion(avatarIds, folderNames) {
+        const { callGenericPopup, POPUP_TYPE, POPUP_RESULT } = context;
+        const count = avatarIds.length;
+        const current = getCurrentAvatar();
+        const list = el('ul', { cls: 'pt-delete-list' });
+        for (const id of avatarIds) {
+            const title = getPersonaTitle(id);
+            list.append(el('li', {},
+                el('span', { cls: 'pt-delete-name', text: getPersonaName(id) }),
+                title ? el('span', { cls: 'pt-delete-title', text: title }) : null,
+            ));
+        }
+        const content = el('div', { cls: 'pt-delete-confirm' },
+            el('h3', { text: `Delete ${count} persona${count === 1 ? '' : 's'}?` }),
+            folderNames.length
+                ? el('p', { text: `Everything in ${folderNames.map(n => `"${n}"`).join(', ')} is deleted — including personas that are also in other folders.` })
+                : null,
+            el('p', { text: 'Their avatars and descriptions are permanently removed from SillyTavern. This cannot be undone.' }),
+            current && avatarIds.includes(current)
+                ? el('p', { cls: 'pt-delete-warning', text: `This includes your current persona (${getPersonaName(current)}). SillyTavern will switch to another one.` })
+                : null,
+            list,
+        );
+        const result = await callGenericPopup(content, POPUP_TYPE.CONFIRM, '', {
+            okButton: `Delete ${count}`,
+            cancelButton: 'Cancel',
+            // Enter must not confirm an irreversible bulk delete by accident.
+            defaultResult: POPUP_RESULT.NEGATIVE,
+        });
+        return result === POPUP_RESULT.AFFIRMATIVE;
+    }
+
+    /**
+     * Delete personas one by one through SillyTavern's own /persona-delete
+     * command handler (silent mode), so ST does its usual cleanup: avatar file,
+     * description, default/locked persona, re-selecting a persona if the
+     * current one goes, and the PERSONA_DELETED event (which PersonaTools uses
+     * to drop the persona from its folders and tags).
+     * @param {string[]} avatarIds
+     * @returns {Promise<{deleted: number, failed: number}>}
+     */
+    async function deletePersonas(avatarIds) {
+        const command = context.SlashCommandParser?.commands?.['persona-delete'];
+        if (typeof command?.callback !== 'function') {
+            toastr.error('This SillyTavern version has no /persona-delete command, so personas cannot be deleted from here.', EXT_NAME);
+            return { deleted: 0, failed: avatarIds.length };
+        }
+        const progress = avatarIds.length > 1
+            ? toastr.info(`Deleting ${avatarIds.length} personas…`, EXT_NAME, { timeOut: 0, extendedTimeOut: 0, tapToDismiss: false })
+            : null;
+        let deleted = 0;
+        let failed = 0;
+        try {
+            for (const avatarId of avatarIds) {
+                if (!personaExists(avatarId)) continue;
+                // The command resolves its argument as an avatar id first, but a
+                // persona whose *name* equals this avatar id would win if it's the
+                // current one — never risk deleting the wrong persona.
+                const ambiguous = Object.entries(powerUser.personas)
+                    .some(([id, name]) => id !== avatarId && String(name).toLowerCase() === avatarId.toLowerCase());
+                if (ambiguous) {
+                    error(`skipped ${avatarId}: another persona is named exactly like this avatar id`);
+                    failed++;
+                    continue;
+                }
+                try {
+                    await command.callback({ persona: avatarId, silent: 'true' }, '');
+                } catch (e) {
+                    error(`failed to delete ${avatarId}`, e);
+                }
+                if (personaExists(avatarId)) failed++;
+                else deleted++;
+            }
+        } finally {
+            if (progress) toastr.clear(progress);
+        }
+        return { deleted, failed };
     }
 
     // ============================================
@@ -1377,6 +1635,18 @@
             closePopover();
             changeView(() => deleteFolder(folderName));
         });
+        deleteBtn.title = 'Remove the folder only — its personas are kept';
+
+        const deleteAllBtn = el('button', {
+            cls: 'pt-danger-btn menu_button', attrs: { type: 'button' },
+            title: 'Delete the folder AND permanently delete every persona in it',
+            on: {
+                click: () => {
+                    closePopover();
+                    deletePersonasWithConfirm(getFolderMembers(folderName), [folderName]);
+                },
+            },
+        }, icon('fa-dumpster'), el('span', { text: 'Delete with personas' }));
 
         body.append(
             el('div', { cls: 'pt-popover-section-title', text: 'Name' }),
@@ -1385,7 +1655,7 @@
             descInput,
             el('div', { cls: 'pt-popover-section-title', text: 'Personas' }),
             list,
-            el('div', { cls: 'pt-popover-footer' }, deleteBtn, saveBtn),
+            el('div', { cls: 'pt-popover-footer' }, el('div', { cls: 'pt-danger-group' }, deleteBtn, deleteAllBtn), saveBtn),
         );
         renderMembers();
     }
@@ -1775,6 +2045,7 @@
     function onPersonaDeleted(payload) {
         const avatarId = payload && typeof payload === 'object' ? payload.avatarId : payload;
         if (avatarId) {
+            selection.personas.delete(avatarId);
             delete settings.personaGroups[avatarId];
             delete settings.persona_tag_map[avatarId];
             for (const [folderName, order] of Object.entries(settings.folderOrder)) {
@@ -1808,6 +2079,7 @@
         addQuickButton();
         createFolderHeader();
         createTagBar();
+        createSelectionUi();
         startObserver();
         startCardReorder();
 

@@ -20,6 +20,12 @@ A SillyTavern extension for enhanced persona management: folders, tags and a qui
 - Breadcrumb header inside a folder with back button and quick edit
 - Rename folders (renaming onto an existing folder merges them), edit descriptions, add/remove personas
 - Deleting is a two-click inline confirmation — no browser popups
+- **Delete with personas**: delete a folder *and* every persona in it in one go (from the folder editor)
+
+### 🗑️ Mass Delete
+- Click **Select** next to the search bar, then click personas and/or folders to select them — a selected folder counts every persona inside it
+- "All on page" selects everything currently shown; the selection is kept while you page, search, filter or open folders
+- **Delete** permanently removes all selected personas through SillyTavern's own persona deletion, after a confirmation that lists every persona that will go
 
 ### 🏷️ Persona Tags
 - Create colored tags and assign them to personas
