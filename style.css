@@ -25,6 +25,11 @@
     display: none !important;
 }
 
+/* Hidden but still takes up its space (keeps layouts from shifting) */
+.pt-invisible {
+    visibility: hidden !important;
+}
+
 .pt-empty {
     color: var(--pt-muted);
     font-style: italic;
@@ -728,9 +733,17 @@ body.pt-grabbing * {
     text-decoration-thickness: 2px;
 }
 
+/* Fixed-width slot so ○ / ✓ / ⊘ all take exactly the same space */
 .pt-tag-state {
+    width: 1.25em;
+    flex-shrink: 0;
+    text-align: center;
     font-size: 0.9em;
     margin-left: -3px;
+}
+
+.pt-tag-chip:not(.pt-selected):not(.pt-excluded) .pt-tag-state {
+    opacity: 0.55;
 }
 
 .pt-tag-chip-small {
@@ -902,6 +915,10 @@ body.pt-grabbing * {
     gap: 5px;
     font-size: 0.8em;
     color: var(--pt-danger) !important;
+}
+
+.pt-tag-bar-header .pt-clear-btn {
+    margin: 0;
 }
 
 .pt-tag-bar-search {

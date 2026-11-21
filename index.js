@@ -1149,13 +1149,19 @@
             for (const tag of [...settings.persona_tags].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))) {
                 if (needle && !tag.name.toLowerCase().includes(needle)) continue;
                 const state = getTagFilterState(tag.id);
+                // Every chip carries a fixed-width state icon (○ off, ✓ include,
+                // ⊘ exclude), so toggling never changes a chip's width and the
+                // bar never reflows under the cursor.
+                const stateIcon = state === 'include' ? 'fa-solid fa-check'
+                    : state === 'exclude' ? 'fa-solid fa-ban'
+                        : 'fa-regular fa-circle';
                 const chip = el('button', {
                     cls: `pt-tag-chip${state === 'include' ? ' pt-selected' : ''}${state === 'exclude' ? ' pt-excluded' : ''}`,
                     title: TAG_FILTER_TITLES[state || 'none'],
                     attrs: { type: 'button', 'aria-pressed': state ? 'true' : 'false' },
                     on: { click: (e) => e.shiftKey ? toggleTagFilter(tag.id, 'exclude') : cycleTagFilter(tag.id) },
                 },
-                    state ? icon(state === 'include' ? 'fa-check pt-tag-state' : 'fa-ban pt-tag-state') : null,
+                    el('i', { cls: `${stateIcon} fa-fw pt-tag-state`, attrs: { 'aria-hidden': 'true' } }),
                     el('span', { cls: 'pt-tag-chip-name', text: tag.name }),
                     el('span', { cls: 'pt-tag-chip-count', text: String(getTagUsage(tag.id)) }),
                 );
@@ -1173,18 +1179,26 @@
                 on: { input: (e) => { tagSearchValue = e.target.value; renderChips(); } },
             }));
         }
-        if (activeCount) {
-            const parts = [];
-            if (view.tags.length) parts.push(`${view.tags.length} included`);
-            if (view.excludeTags.length) parts.push(`${view.excludeTags.length} excluded`);
-            header.append(el('span', { cls: 'pt-tag-bar-active', text: parts.join(' · ') }));
-            header.append(el('button', {
-                cls: 'pt-clear-btn menu_button', attrs: { type: 'button' },
-                on: { click: () => { changeView(() => { view.tags = []; view.excludeTags = []; }); renderTagBar(); } },
-            }, icon('fa-xmark'), el('span', { text: 'Clear' })));
-        } else if (hasTags) {
-            header.append(el('span', { cls: 'pt-tag-bar-hint', text: 'Click a tag to include it, again to exclude it' }));
+        // The status line keeps the same layout with or without an active
+        // filter (the Clear button is only made invisible), so the chips below
+        // don't jump up or down when the first filter is set or cleared.
+        const parts = [];
+        if (view.tags.length) parts.push(`${view.tags.length} included`);
+        if (view.excludeTags.length) parts.push(`${view.excludeTags.length} excluded`);
+        header.append(activeCount
+            ? el('span', { cls: 'pt-tag-bar-active', text: parts.join(' · ') })
+            : el('span', { cls: 'pt-tag-bar-hint', text: 'Click a tag to include it, again to exclude it' }));
+        const clearBtn = el('button', {
+            cls: 'pt-clear-btn menu_button', attrs: { type: 'button' },
+            on: { click: () => { changeView(() => { view.tags = []; view.excludeTags = []; }); renderTagBar(); } },
+        }, icon('fa-xmark'), el('span', { text: 'Clear' }));
+        if (!activeCount) {
+            clearBtn.classList.add('pt-invisible');
+            clearBtn.disabled = true;
+            clearBtn.tabIndex = -1;
+            clearBtn.setAttribute('aria-hidden', 'true');
         }
+        header.append(clearBtn);
         if (header.children.length) tagBar.append(header);
 
         renderChips();
