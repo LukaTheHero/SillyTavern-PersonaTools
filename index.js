@@ -1133,9 +1133,20 @@
 
         tagToggleBtn.classList.toggle('pt-hidden', !hasTags && !activeCount);
         tagToggleBtn.classList.toggle('pt-open', tagBarExpanded);
-        const toggleKids = [icon('fa-tags'), el('span', { cls: 'pt-tag-toggle-label', text: 'Tags' })];
-        if (activeCount) toggleKids.push(el('span', { cls: 'pt-tag-toggle-badge', text: String(activeCount) }));
-        toggleKids.push(icon(`fa-chevron-${tagBarExpanded ? 'up' : 'down'} pt-chevron`));
+        // The count badge is always rendered (invisible at 0) so the button
+        // keeps its width and the header row doesn't shift when the first
+        // filter is set or the last one cleared.
+        const badge = el('span', { cls: 'pt-tag-toggle-badge', text: String(activeCount) });
+        if (!activeCount) {
+            badge.classList.add('pt-invisible');
+            badge.setAttribute('aria-hidden', 'true');
+        }
+        const toggleKids = [
+            icon('fa-tags'),
+            el('span', { cls: 'pt-tag-toggle-label', text: 'Tags' }),
+            badge,
+            icon(`fa-chevron-${tagBarExpanded ? 'up' : 'down'} pt-chevron`),
+        ];
         tagToggleBtn.replaceChildren(...toggleKids);
 
         tagBar.replaceChildren();
