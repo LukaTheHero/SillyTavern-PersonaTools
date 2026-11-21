@@ -1185,9 +1185,12 @@
         const parts = [];
         if (view.tags.length) parts.push(`${view.tags.length} included`);
         if (view.excludeTags.length) parts.push(`${view.excludeTags.length} excluded`);
-        header.append(activeCount
-            ? el('span', { cls: 'pt-tag-bar-active', text: parts.join(' · ') })
-            : el('span', { cls: 'pt-tag-bar-hint', text: 'Click a tag to include it, again to exclude it' }));
+        const statusText = activeCount ? parts.join(' · ') : 'Click a tag to include it, again to exclude it';
+        header.append(el('span', {
+            cls: activeCount ? 'pt-tag-bar-active' : 'pt-tag-bar-hint',
+            text: statusText,
+            title: statusText, // the line truncates instead of wrapping
+        }));
         const clearBtn = el('button', {
             cls: 'pt-clear-btn menu_button', attrs: { type: 'button' },
             on: { click: () => { changeView(() => { view.tags = []; view.excludeTags = []; }); renderTagBar(); } },

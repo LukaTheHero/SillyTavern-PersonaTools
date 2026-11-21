@@ -858,11 +858,13 @@ body.pt-grabbing * {
     margin-bottom: 8px;
 }
 
+/* One row, always: the status text truncates instead of wrapping, so the
+   row's height never changes as filters are toggled */
 .pt-tag-bar-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .pt-tag-bar-toggle {
@@ -909,6 +911,15 @@ body.pt-grabbing * {
     font-style: italic;
 }
 
+.pt-tag-bar-active,
+.pt-tag-bar-hint {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .pt-clear-btn {
     display: inline-flex;
     align-items: center;
@@ -919,6 +930,7 @@ body.pt-grabbing * {
 
 .pt-tag-bar-header .pt-clear-btn {
     margin: 0;
+    flex-shrink: 0;
 }
 
 .pt-tag-bar-search {
