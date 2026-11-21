@@ -1212,10 +1212,11 @@ body.rounded-avatars .pt-member-thumb {
     .pt-tooltip,
     .pt-folder-card,
     .pt-folder-header,
+    .pt-tag-bar,
     .pt-tag-chip,
     .pt-back-btn,
     .pt-quick-img,
-    .pt-tag-bar,
+    .pt-tag-bar-chips,
     .pt-chevron,
     .pt-danger-btn.pt-armed,
     .pt-chip-delete.pt-armed {
