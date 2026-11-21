@@ -742,8 +742,19 @@ body.pt-grabbing * {
     margin-left: -3px;
 }
 
-.pt-tag-chip:not(.pt-selected):not(.pt-excluded) .pt-tag-state {
+.pt-tag-state-off {
     opacity: 0.55;
+}
+
+.pt-tag-state-off::before {
+    content: '';
+    display: inline-block;
+    box-sizing: border-box;
+    width: 0.75em;
+    height: 0.75em;
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+    vertical-align: -0.05em;
 }
 
 .pt-tag-chip-small {

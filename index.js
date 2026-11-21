@@ -1152,9 +1152,11 @@
                 // Every chip carries a fixed-width state icon (○ off, ✓ include,
                 // ⊘ exclude), so toggling never changes a chip's width and the
                 // bar never reflows under the cursor.
+                // (The "off" ring is drawn in CSS: ST only loads Font
+                // Awesome's solid style, so fa-regular icons render filled.)
                 const stateIcon = state === 'include' ? 'fa-solid fa-check'
                     : state === 'exclude' ? 'fa-solid fa-ban'
-                        : 'fa-regular fa-circle';
+                        : 'pt-tag-state-off';
                 const chip = el('button', {
                     cls: `pt-tag-chip${state === 'include' ? ' pt-selected' : ''}${state === 'exclude' ? ' pt-excluded' : ''}`,
                     title: TAG_FILTER_TITLES[state || 'none'],
