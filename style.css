@@ -716,6 +716,23 @@ body.pt-grabbing * {
     outline-offset: 1px;
 }
 
+/* Excluded tag filter: danger outline, struck-through name, dimmed */
+.pt-tag-chip.pt-excluded {
+    outline: 2px solid var(--pt-danger);
+    outline-offset: 1px;
+    opacity: 0.75;
+}
+
+.pt-tag-chip.pt-excluded .pt-tag-chip-name {
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+}
+
+.pt-tag-state {
+    font-size: 0.9em;
+    margin-left: -3px;
+}
+
 .pt-tag-chip-small {
     padding: 1px 8px;
     font-size: 0.72em;
@@ -871,6 +888,12 @@ body.pt-grabbing * {
     font-size: 0.78em;
     color: var(--pt-accent);
     font-weight: 600;
+}
+
+.pt-tag-bar-hint {
+    font-size: 0.75em;
+    color: var(--pt-muted);
+    font-style: italic;
 }
 
 .pt-clear-btn {

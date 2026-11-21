@@ -24,8 +24,9 @@ A SillyTavern extension for enhanced persona management: folders, tags and a qui
 ### 🏷️ Persona Tags
 - Create colored tags and assign them to personas
 - Tag text automatically switches between dark and light for readability on any color
-- Collapsible tag filter bar with usage counts and AND-filtering (shows personas matching *all* selected tags)
-- Click a tag chip on any persona card to toggle that filter
+- Collapsible tag filter bar with usage counts and AND-filtering (shows personas matching *all* included tags)
+- **Include or exclude tags**: click a tag in the filter bar to include it, click again to exclude it (hides every persona with that tag), click a third time to clear — the same cycle as SillyTavern's own tag filter
+- Click a tag chip on any persona card to toggle that filter (Shift+click to exclude it instead)
 - Explicit tag deletion (two-click confirm) — tags are never auto-deleted behind your back
 - Random color generator with light/dark palette toggle
 

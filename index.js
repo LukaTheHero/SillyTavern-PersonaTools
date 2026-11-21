@@ -405,6 +405,7 @@
             else delete settings.persona_tag_map[avatarId];
         }
         view.tags = view.tags.filter(t => t !== tagId);
+        view.excludeTags = view.excludeTags.filter(t => t !== tagId);
         saveSettings();
     }
 
@@ -421,6 +422,11 @@
         return tagIds.every(t => assigned.includes(t));
     }
 
+    function hasAnyTag(avatarId, tagIds) {
+        const assigned = settings.persona_tag_map[avatarId] || [];
+        return tagIds.some(t => assigned.includes(t));
+    }
+
     let lightColors = true;
     function randomTagColor() {
         const channel = () => lightColors ? 150 + Math.floor(Math.random() * 90) : 40 + Math.floor(Math.random() * 110);
@@ -432,9 +438,26 @@
     // ============================================
 
     const view = {
-        folder: null,   // open folder name, or null for root
-        tags: [],       // selected tag-filter ids (AND semantics)
+        folder: null,      // open folder name, or null for root
+        tags: [],          // included tag-filter ids (AND semantics: must have all)
+        excludeTags: [],   // excluded tag-filter ids (must have none)
     };
+
+    function hasTagFilter() {
+        return view.tags.length > 0 || view.excludeTags.length > 0;
+    }
+
+    /** True if the persona passes the current include/exclude tag filter. */
+    function matchesTagFilter(avatarId) {
+        return hasAllTags(avatarId, view.tags) && !hasAnyTag(avatarId, view.excludeTags);
+    }
+
+    /** @returns {'include'|'exclude'|null} */
+    function getTagFilterState(tagId) {
+        if (view.tags.includes(tagId)) return 'include';
+        if (view.excludeTags.includes(tagId)) return 'exclude';
+        return null;
+    }
 
     function isSearchActive() {
         try {
@@ -452,7 +475,7 @@
             if (!Array.isArray(avatarIds)) return avatarIds;
             let data = avatarIds;
             // Tag filters compose with the native search (AND)...
-            if (view.tags.length) data = data.filter(id => hasAllTags(id, view.tags));
+            if (hasTagFilter()) data = data.filter(matchesTagFilter);
             // ...but searching bypasses folder scoping, so it finds everything.
             if (isSearchActive()) return data;
             if (view.folder) {
@@ -470,7 +493,7 @@
                 });
                 return ordered;
             }
-            if (view.tags.length) return data;
+            if (hasTagFilter()) return data;
             if (getAllFolders().length) return data.filter(id => !isGrouped(id));
             return data;
         } catch (e) {
@@ -510,7 +533,7 @@
     }
     const refreshListSoon = debounced(refreshList, 150);
 
-    function isRootView() { return !view.folder && !view.tags.length; }
+    function isRootView() { return !view.folder && !hasTagFilter(); }
 
     /** Central view-state switch that keeps pagination positions sane. */
     function changeView(mutate) {
@@ -910,7 +933,7 @@
 
     function renderFolderCards(block) {
         block.querySelectorAll('.pt-folder-card').forEach(n => n.remove());
-        const showFolders = !view.folder && !view.tags.length && !isSearchActive();
+        const showFolders = !view.folder && !hasTagFilter() && !isSearchActive();
         if (!showFolders) return;
 
         const fragment = document.createDocumentFragment();
@@ -993,9 +1016,9 @@
                 for (const tag of tags) {
                     const chip = el('span', {
                         cls: 'pt-tag-chip pt-tag-chip-small', text: tag.name,
-                        title: 'Filter by this tag',
+                        title: 'Click: filter by this tag · Shift+click: hide personas with this tag',
                         on: {
-                            click: (e) => { e.stopPropagation(); toggleTagFilter(tag.id); },
+                            click: (e) => { e.stopPropagation(); toggleTagFilter(tag.id, e.shiftKey ? 'exclude' : 'include'); },
                             mousedown: (e) => e.stopPropagation(),
                         },
                     });
@@ -1029,7 +1052,7 @@
 
     function updateFolderHeader() {
         if (!folderHeader) return;
-        const show = !!view.folder && !view.tags.length && !isSearchActive();
+        const show = !!view.folder && !hasTagFilter() && !isSearchActive();
         folderHeader.classList.toggle('pt-hidden', !show);
         if (show) {
             const title = folderHeader.querySelector('.pt-folder-header-title');
@@ -1050,14 +1073,39 @@
     let tagBarExpanded = false;
     let tagSearchValue = '';
 
-    function toggleTagFilter(tagId) {
+    /**
+     * Set one tag's filter state; null clears it. A tag is never both
+     * included and excluded.
+     * @param {string} tagId
+     * @param {'include'|'exclude'|null} state
+     */
+    function setTagFilter(tagId, state) {
         changeView(() => {
-            if (view.tags.includes(tagId)) view.tags = view.tags.filter(t => t !== tagId);
-            else view.tags.push(tagId);
+            view.tags = view.tags.filter(t => t !== tagId);
+            view.excludeTags = view.excludeTags.filter(t => t !== tagId);
+            if (state === 'include') view.tags.push(tagId);
+            else if (state === 'exclude') view.excludeTags.push(tagId);
         });
-        if (view.tags.length) tagBarExpanded = true;
+        if (hasTagFilter()) tagBarExpanded = true;
         renderTagBar();
     }
+
+    /** Filter-bar chips cycle like ST's own tag filter: off → include → exclude → off. */
+    function cycleTagFilter(tagId) {
+        const state = getTagFilterState(tagId);
+        setTagFilter(tagId, state === null ? 'include' : state === 'include' ? 'exclude' : null);
+    }
+
+    /** Turn `mode` on for this tag, or off again if it is already in that mode. */
+    function toggleTagFilter(tagId, mode = 'include') {
+        setTagFilter(tagId, getTagFilterState(tagId) === mode ? null : mode);
+    }
+
+    const TAG_FILTER_TITLES = {
+        none: 'Click to include · Shift+click to exclude',
+        include: 'Included (personas must have this tag) · click to exclude instead',
+        exclude: 'Excluded (personas with this tag are hidden) · click to clear',
+    };
 
     function createTagBar() {
         const headerRow = document.querySelector(SEL.headerRow);
@@ -1081,7 +1129,7 @@
         if (!tagBar || !tagToggleBtn) return;
 
         const hasTags = settings.persona_tags.length > 0;
-        const activeCount = view.tags.length;
+        const activeCount = view.tags.length + view.excludeTags.length;
 
         tagToggleBtn.classList.toggle('pt-hidden', !hasTags && !activeCount);
         tagToggleBtn.classList.toggle('pt-open', tagBarExpanded);
@@ -1100,12 +1148,17 @@
             const needle = tagSearchValue.trim().toLowerCase();
             for (const tag of [...settings.persona_tags].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))) {
                 if (needle && !tag.name.toLowerCase().includes(needle)) continue;
-                const selected = view.tags.includes(tag.id);
+                const state = getTagFilterState(tag.id);
                 const chip = el('button', {
-                    cls: `pt-tag-chip${selected ? ' pt-selected' : ''}`,
-                    attrs: { type: 'button' },
-                    on: { click: () => toggleTagFilter(tag.id) },
-                }, el('span', { text: tag.name }), el('span', { cls: 'pt-tag-chip-count', text: String(getTagUsage(tag.id)) }));
+                    cls: `pt-tag-chip${state === 'include' ? ' pt-selected' : ''}${state === 'exclude' ? ' pt-excluded' : ''}`,
+                    title: TAG_FILTER_TITLES[state || 'none'],
+                    attrs: { type: 'button', 'aria-pressed': state ? 'true' : 'false' },
+                    on: { click: (e) => e.shiftKey ? toggleTagFilter(tag.id, 'exclude') : cycleTagFilter(tag.id) },
+                },
+                    state ? icon(state === 'include' ? 'fa-check pt-tag-state' : 'fa-ban pt-tag-state') : null,
+                    el('span', { cls: 'pt-tag-chip-name', text: tag.name }),
+                    el('span', { cls: 'pt-tag-chip-count', text: String(getTagUsage(tag.id)) }),
+                );
                 styleTagChip(chip, tag.color);
                 chips.append(chip);
             }
@@ -1121,11 +1174,16 @@
             }));
         }
         if (activeCount) {
-            header.append(el('span', { cls: 'pt-tag-bar-active', text: `${activeCount} filter${activeCount > 1 ? 's' : ''} active` }));
+            const parts = [];
+            if (view.tags.length) parts.push(`${view.tags.length} included`);
+            if (view.excludeTags.length) parts.push(`${view.excludeTags.length} excluded`);
+            header.append(el('span', { cls: 'pt-tag-bar-active', text: parts.join(' · ') }));
             header.append(el('button', {
                 cls: 'pt-clear-btn menu_button', attrs: { type: 'button' },
-                on: { click: () => { changeView(() => { view.tags = []; }); renderTagBar(); } },
+                on: { click: () => { changeView(() => { view.tags = []; view.excludeTags = []; }); renderTagBar(); } },
             }, icon('fa-xmark'), el('span', { text: 'Clear' })));
+        } else if (hasTags) {
+            header.append(el('span', { cls: 'pt-tag-bar-hint', text: 'Click a tag to include it, again to exclude it' }));
         }
         if (header.children.length) tagBar.append(header);
 
@@ -1426,7 +1484,7 @@
                         click: (e) => {
                             e.stopPropagation();
                             if (del.classList.contains('pt-armed')) {
-                                const wasFiltering = view.tags.includes(tag.id);
+                                const wasFiltering = getTagFilterState(tag.id) !== null;
                                 deleteTag(tag.id);
                                 render(); scheduleDecorate(); renderTagBar();
                                 if (wasFiltering) refreshListSoon();
@@ -1841,12 +1899,13 @@
             // the new card works natively either way.)
             const visibleHere = view.folder
                 ? !!(newId && (settings.personaGroups[newId] || []).includes(view.folder))
-                : view.tags.length
-                    ? !!(newId && hasAllTags(newId, view.tags))
+                : hasTagFilter()
+                    ? !!(newId && matchesTagFilter(newId))
                     : true;
             if (!visibleHere && personasApi.isPersonaPanelOpen?.()) {
                 view.folder = null;
                 view.tags = [];
+                view.excludeTags = [];
                 renderTagBar();
             }
             updateQuickButton();
@@ -1884,7 +1943,7 @@
         const searchBar = document.getElementById('persona_search_bar');
         if (searchBar) {
             searchBar.addEventListener('input', () => {
-                if (!searchBar.value.trim() && (view.folder || view.tags.length || getAllFolders().length)) refreshListSoon();
+                if (!searchBar.value.trim() && (view.folder || hasTagFilter() || getAllFolders().length)) refreshListSoon();
             });
         }
 
