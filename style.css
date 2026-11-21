@@ -851,11 +851,15 @@ body.pt-grabbing * {
    Tag filter bar
    ============================================================ */
 
+/* Fade in when the bar is opened. Deliberately not on the chips: they are
+   re-rendered on every click, and replaying the slide-in each time made the
+   whole chip area jump by a few pixels. */
 .pt-tag-bar {
     display: flex;
     flex-direction: column;
     gap: 6px;
     margin-bottom: 8px;
+    animation: pt-fade-in 0.15s ease;
 }
 
 /* One row, always: the status text truncates instead of wrapping, so the
@@ -942,7 +946,6 @@ body.pt-grabbing * {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
-    animation: pt-fade-in 0.15s ease;
 }
 
 /* ============================================================
@@ -1212,7 +1215,7 @@ body.rounded-avatars .pt-member-thumb {
     .pt-tag-chip,
     .pt-back-btn,
     .pt-quick-img,
-    .pt-tag-bar-chips,
+    .pt-tag-bar,
     .pt-chevron,
     .pt-danger-btn.pt-armed,
     .pt-chip-delete.pt-armed {
